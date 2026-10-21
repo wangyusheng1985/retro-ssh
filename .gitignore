@@ -20,8 +20,9 @@ compile_commands.json
 .LSOverride
 ._*
 
-# OpenSpec
+# OpenSpec & Agent configs
 openspec/
+.pi/
 
 # Temporary files
 *.swp
