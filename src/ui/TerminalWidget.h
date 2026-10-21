@@ -99,6 +99,7 @@ private:
     void updateDimensions();
     void updateScrollRange();
     static bool isWideChar(QChar ch);
+    static QColor colorFrom256Index(int idx);
 
     int m_cols = 80;
     int m_rows = 24;
@@ -153,4 +154,12 @@ private:
     class FindDialog *m_findDialog = nullptr;
     int m_lastFoundRow = -1;
     int m_lastFoundCol = -1;
+
+    // Mouse tracking and Alternate Screen (DECSET/DECRST)
+    bool m_mouseTracking = false;   // Mode 1000 / 1002
+    bool m_sgrMouseMode = false;    // Mode 1006
+    bool m_altScreenActive = false; // Mode 1049 / 47
+    QVector<QVector<AnsiChar>> m_primaryBuffer;
+    int m_primaryCursorRow = 0;
+    int m_primaryCursorCol = 0;
 };

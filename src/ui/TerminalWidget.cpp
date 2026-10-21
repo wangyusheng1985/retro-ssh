@@ -14,16 +14,49 @@
 #include <QTextDecoder>
 #include <QDebug>
 
-static const QColor ANSI_COLORS[8] = {
+static const QColor ANSI_COLORS[16] = {
+    // Normal 0-7
     QColor(0, 0, 0),        // 0: Black
-    QColor(180, 0, 0),      // 1: Red
-    QColor(0, 140, 0),      // 2: Green
-    QColor(160, 130, 0),    // 3: Yellow
-    QColor(0, 0, 180),      // 4: Blue
-    QColor(160, 0, 160),    // 5: Magenta
-    QColor(0, 140, 140),    // 6: Cyan
-    QColor(240, 240, 240)   // 7: White
+    QColor(205, 49, 49),    // 1: Red
+    QColor(13, 188, 121),   // 2: Green
+    QColor(229, 229, 16),   // 3: Yellow
+    QColor(36, 114, 200),   // 4: Blue
+    QColor(188, 63, 188),   // 5: Magenta
+    QColor(17, 168, 205),   // 6: Cyan
+    QColor(229, 229, 229),  // 7: White
+    // Bright 8-15
+    QColor(102, 102, 102),  // 8: Bright Black (Dark Gray)
+    QColor(241, 76, 76),    // 9: Bright Red
+    QColor(35, 209, 139),   // 10: Bright Green
+    QColor(245, 245, 67),   // 11: Bright Yellow
+    QColor(59, 142, 234),   // 12: Bright Blue
+    QColor(214, 112, 214),  // 13: Bright Magenta
+    QColor(41, 184, 219),   // 14: Bright Cyan
+    QColor(255, 255, 255)   // 15: Bright White
 };
+
+QColor TerminalWidget::colorFrom256Index(int idx) {
+    if (idx < 0 || idx > 255) {
+        return Qt::black;
+    }
+    if (idx < 16) {
+        return ANSI_COLORS[idx];
+    }
+    if (idx < 232) {
+        // 6x6x6 RGB color cube
+        int cubeIdx = idx - 16;
+        int r = (cubeIdx / 36) % 6;
+        int g = (cubeIdx / 6) % 6;
+        int b = cubeIdx % 6;
+        auto step = [](int val) -> int {
+            return val ? (55 + val * 40) : 0;
+        };
+        return QColor(step(r), step(g), step(b));
+    }
+    // 24-step grayscale (232-255)
+    int gray = 8 + (idx - 232) * 10;
+    return QColor(gray, gray, gray);
+}
 
 TerminalWidget::TerminalWidget(QWidget *parent)
     : QWidget(parent) {
@@ -144,6 +177,12 @@ void TerminalWidget::setTerminalColors(const QColor &fg, const QColor &bg, const
 }
 
 void TerminalWidget::resetTerminal() {
+    m_mouseTracking = false;
+    m_sgrMouseMode = false;
+    if (m_altScreenActive) {
+        m_altScreenActive = false;
+        m_primaryBuffer.clear();
+    }
     clearScreen(false);
     emit dataToSend("\n");
 }
@@ -161,12 +200,14 @@ void TerminalWidget::clearScreen(bool keepBanner) {
     m_showingBanner = keepBanner;
     m_buffer.clear();
     m_buffer.resize(m_rows);
+    QColor baseFg = m_reverseVideo ? m_defaultBg : m_defaultFg;
+    QColor baseBg = m_reverseVideo ? m_defaultFg : m_defaultBg;
     for (auto &row : m_buffer) {
         row.resize(m_cols);
         for (auto &ch : row) {
             ch = AnsiChar();
-            ch.fg = Qt::black;
-            ch.bg = Qt::white;
+            ch.fg = baseFg;
+            ch.bg = baseBg;
         }
     }
     m_cursorCol = 0;
@@ -206,7 +247,18 @@ void TerminalWidget::parseAnsi(const QString &text) {
 
         // OSC sequence handling: ESC ] ... BEL (0x07) or ST (ESC \)
         if (m_inOsc) {
+            bool oscEnd = false;
             if (ch == 0x07) { // BEL terminates OSC
+                oscEnd = true;
+            } else if (ch == 0x1B) {
+                // Potential ST (ESC \)
+                if (i + 1 < text.size() && text[i + 1] == '\\') {
+                    i++;
+                    oscEnd = true;
+                }
+            }
+
+            if (oscEnd) {
                 m_inOsc = false;
                 // e.g. "0;root@OPS-4722: ~" or "2;root@OPS-4722: /var/log"
                 if (m_oscBuffer.startsWith("0;") || m_oscBuffer.startsWith("2;")) {
@@ -218,18 +270,25 @@ void TerminalWidget::parseAnsi(const QString &text) {
                     if (colonIdx >= 0) {
                         m_lastWorkingDir = title.mid(colonIdx + 1).trimmed();
                     }
+                } else if (m_oscBuffer.startsWith("10;?")) {
+                    QColor curFg = m_reverseVideo ? m_defaultBg : m_defaultFg;
+                    QString resp = QString("\x1b]10;rgb:%1/%2/%3\x07")
+                                       .arg(curFg.red() * 257, 4, 16, QChar('0'))
+                                       .arg(curFg.green() * 257, 4, 16, QChar('0'))
+                                       .arg(curFg.blue() * 257, 4, 16, QChar('0'));
+                    emit dataToSend(resp.toUtf8());
+                } else if (m_oscBuffer.startsWith("11;?")) {
+                    QColor curBg = m_reverseVideo ? m_defaultFg : m_defaultBg;
+                    QString resp = QString("\x1b]11;rgb:%1/%2/%3\x07")
+                                       .arg(curBg.red() * 257, 4, 16, QChar('0'))
+                                       .arg(curBg.green() * 257, 4, 16, QChar('0'))
+                                       .arg(curBg.blue() * 257, 4, 16, QChar('0'));
+                    emit dataToSend(resp.toUtf8());
                 }
                 m_oscBuffer.clear();
                 continue;
-            } else if (ch == 0x1B) {
-                // Potential ST (ESC \)
-                if (i + 1 < text.size() && text[i + 1] == '\\') {
-                    i++;
-                    m_inOsc = false;
-                    m_oscBuffer.clear();
-                    continue;
-                }
             }
+
             m_oscBuffer.append(ch);
             continue;
         }
@@ -334,28 +393,119 @@ void TerminalWidget::handleEscapeSequence(const QString &seq) {
         QString params = cmd.left(cmd.length() - 1);
         QStringList parts = params.split(';');
 
+        // Handle DECSET / DECRST private mode sequences (e.g. \e[?1000h, \e[?1006h, \e[?1049h, \e[?25h)
+        if (params.startsWith('?')) {
+            QString p = params.mid(1);
+            QStringList modes = p.split(';');
+            bool enable = (type == 'h');
+            for (const QString &m : modes) {
+                int mode = m.toInt();
+                if (mode == 1000 || mode == 1002) {
+                    m_mouseTracking = enable;
+                } else if (mode == 1006) {
+                    m_sgrMouseMode = enable;
+                } else if (mode == 1049 || mode == 47) {
+                    if (enable && !m_altScreenActive) {
+                        m_altScreenActive = true;
+                        m_primaryBuffer = m_buffer;
+                        m_primaryCursorRow = m_cursorRow;
+                        m_primaryCursorCol = m_cursorCol;
+                        // Clear buffer for alternate screen (single screen without scrollback)
+                        m_buffer.clear();
+                        m_buffer.resize(m_rows);
+                        for (auto &row : m_buffer) {
+                            row.resize(m_cols);
+                            for (auto &ch : row) {
+                                ch = AnsiChar();
+                                ch.fg = m_currentFg;
+                                ch.bg = m_currentBg;
+                            }
+                        }
+                        m_cursorRow = 0;
+                        m_cursorCol = 0;
+                        m_scrollOffset = 0;
+                        updateScrollRange();
+                        update();
+                    } else if (!enable && m_altScreenActive) {
+                        m_altScreenActive = false;
+                        if (!m_primaryBuffer.isEmpty()) {
+                            m_buffer = m_primaryBuffer;
+                            m_primaryBuffer.clear();
+                            m_cursorRow = m_primaryCursorRow;
+                            m_cursorCol = m_primaryCursorCol;
+                        }
+                        m_scrollOffset = 0;
+                        updateScrollRange();
+                        update();
+                    }
+                } else if (mode == 25) {
+                    m_cursorVisible = enable;
+                    update();
+                }
+            }
+            return;
+        }
+
         if (type == 'm') {
             if (params.isEmpty() || params == "0") {
-                m_currentFg = Qt::black;
-                m_currentBg = Qt::white;
+                m_currentFg = m_reverseVideo ? m_defaultBg : m_defaultFg;
+                m_currentBg = m_reverseVideo ? m_defaultFg : m_defaultBg;
                 m_currentBold = false;
                 m_currentUnderline = false;
             } else {
-                for (const QString &p : parts) {
-                    int val = p.toInt();
+                for (int i = 0; i < parts.size(); ++i) {
+                    if (parts[i].isEmpty()) continue;
+                    int val = parts[i].toInt();
                     if (val == 0) {
-                        m_currentFg = Qt::black;
-                        m_currentBg = Qt::white;
+                        m_currentFg = m_reverseVideo ? m_defaultBg : m_defaultFg;
+                        m_currentBg = m_reverseVideo ? m_defaultFg : m_defaultBg;
+                        m_currentBold = false;
+                        m_currentUnderline = false;
                     } else if (val == 1) {
                         m_currentBold = true;
+                    } else if (val == 4) {
+                        m_currentUnderline = true;
+                    } else if (val == 22) {
+                        m_currentBold = false;
+                    } else if (val == 24) {
+                        m_currentUnderline = false;
                     } else if (val >= 30 && val <= 37) {
                         m_currentFg = ANSI_COLORS[val - 30];
+                    } else if (val == 39) {
+                        m_currentFg = m_reverseVideo ? m_defaultBg : m_defaultFg;
                     } else if (val >= 40 && val <= 47) {
                         m_currentBg = ANSI_COLORS[val - 40];
-                    } else if (val == 39) {
-                        m_currentFg = Qt::black;
                     } else if (val == 49) {
-                        m_currentBg = Qt::white;
+                        m_currentBg = m_reverseVideo ? m_defaultFg : m_defaultBg;
+                    } else if (val >= 90 && val <= 97) {
+                        m_currentFg = ANSI_COLORS[val - 90 + 8];
+                    } else if (val >= 100 && val <= 107) {
+                        m_currentBg = ANSI_COLORS[val - 100 + 8];
+                    } else if ((val == 38 || val == 48) && i + 1 < parts.size()) {
+                        int subType = parts[i + 1].toInt();
+                        if (subType == 2 && i + 4 < parts.size()) {
+                            // 24-bit TrueColor: 38;2;R;G;B or 48;2;R;G;B
+                            int r = qBound(0, parts[i + 2].toInt(), 255);
+                            int g = qBound(0, parts[i + 3].toInt(), 255);
+                            int b = qBound(0, parts[i + 4].toInt(), 255);
+                            QColor color(r, g, b);
+                            if (val == 38) {
+                                m_currentFg = color;
+                            } else {
+                                m_currentBg = color;
+                            }
+                            i += 4;
+                        } else if (subType == 5 && i + 2 < parts.size()) {
+                            // 256-color palette: 38;5;N or 48;5;N
+                            int n = qBound(0, parts[i + 2].toInt(), 255);
+                            QColor color = colorFrom256Index(n);
+                            if (val == 38) {
+                                m_currentFg = color;
+                            } else {
+                                m_currentBg = color;
+                            }
+                            i += 2;
+                        }
                     }
                 }
             }
@@ -482,10 +632,50 @@ void TerminalWidget::wheelEvent(QWheelEvent *event) {
 
     if (lines != 0) {
         m_wheelAccumulator -= lines * stepHeight;
-        if (lines > 0) {
-            scrollUp(lines);
-        } else {
-            scrollDown(-lines);
+
+        // 1. If mouse tracking is active (e.g. Pi Agent fullscreen mode, Vim with mouse=a)
+        if (m_sgrMouseMode || m_mouseTracking) {
+#if QT_VERSION >= QT_VERSION_CHECK(5, 14, 0)
+            QPoint pos = event->position().toPoint();
+#else
+            QPoint pos = event->pos();
+#endif
+            int col = qBound(1, pos.x() / m_charWidth + 1, m_cols);
+            int row = qBound(1, pos.y() / m_charHeight + 1, m_rows);
+            int btn = (lines > 0) ? 64 : 65;
+            int count = qAbs(lines);
+
+            for (int i = 0; i < count; ++i) {
+                if (m_sgrMouseMode) {
+                    // SGR 1006 format: \e[<btn;col;rowM
+                    QByteArray seq = QString("\x1b[<%1;%2;%3M").arg(btn).arg(col).arg(row).toUtf8();
+                    emit dataToSend(seq);
+                } else {
+                    // Classic X10/VT200 format: \e[M<btn+32><col+32><row+32>
+                    QByteArray seq;
+                    seq.append("\x1b[M");
+                    seq.append(static_cast<char>(btn + 32));
+                    seq.append(static_cast<char>(qMin(255, col + 32)));
+                    seq.append(static_cast<char>(qMin(255, row + 32)));
+                    emit dataToSend(seq);
+                }
+            }
+        }
+        // 2. If in Alternate Screen without mouse tracking, fallback to Up/Down arrow sequences
+        else if (m_altScreenActive) {
+            int count = qAbs(lines);
+            const char *keySeq = (lines > 0) ? "\x1b[A" : "\x1b[B";
+            for (int i = 0; i < count; ++i) {
+                emit dataToSend(keySeq);
+            }
+        }
+        // 3. Normal terminal mode: scroll local scrollback buffer
+        else {
+            if (lines > 0) {
+                scrollUp(lines);
+            } else {
+                scrollDown(-lines);
+            }
         }
     }
 

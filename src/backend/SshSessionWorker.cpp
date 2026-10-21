@@ -251,11 +251,14 @@ void SshSessionWorker::run() {
         return;
     }
 
-    // Request PTY
+    // Request PTY with 256color and truecolor capabilities
     int ptyRc = 0;
     {
         QMutexLocker locker(&m_sshMutex);
-        ptyRc = libssh2_channel_request_pty(m_channel, "xterm");
+        ptyRc = libssh2_channel_request_pty(m_channel, "xterm-256color");
+        if (ptyRc == 0) {
+            libssh2_channel_setenv(m_channel, "COLORTERM", "truecolor");
+        }
     }
     if (ptyRc != 0) {
         disconnectFromServer();

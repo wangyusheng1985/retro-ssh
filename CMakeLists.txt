@@ -55,6 +55,14 @@ set(SOURCES
     src/resources/resources.qrc
 )
 
+set(MACOSX_ICON ${CMAKE_CURRENT_SOURCE_DIR}/src/resources/icons/RetroSSH.icns)
+if (APPLE)
+    set_source_files_properties(${MACOSX_ICON} PROPERTIES
+        MACOSX_PACKAGE_LOCATION Resources
+    )
+    list(APPEND SOURCES ${MACOSX_ICON})
+endif()
+
 set(HEADERS
     src/backend/SshSessionWorker.h
     src/backend/SftpWorker.h
@@ -82,5 +90,6 @@ if (APPLE)
         MACOSX_BUNDLE TRUE
         MACOSX_BUNDLE_BUNDLE_NAME "RetroSSH"
         MACOSX_BUNDLE_GUI_IDENTIFIER "org.retrossh.client"
+        MACOSX_BUNDLE_ICON_FILE "RetroSSH.icns"
     )
 endif()
