@@ -1,0 +1,186 @@
+/* Authentic SSH Secure Shell 3.2.9 Look & Feel (Clean White / Off-White Tone) */
+QWidget {
+    background-color: #F0F0F0;
+    color: #000000;
+    font-family: "Tahoma", "Segoe UI", sans-serif;
+    font-size: 11px;
+}
+
+QMainWindow {
+    background-color: #F0F0F0;
+}
+
+/* MenuBar - Crisp Off-White */
+QMenuBar {
+    background-color: #F0F0F0;
+    border-bottom: 1px solid #D0D0D0;
+    padding: 1px 2px;
+}
+
+QMenuBar::item {
+    background: transparent;
+    padding: 3px 6px;
+    margin: 1px;
+}
+
+QMenuBar::item:selected {
+    background-color: #316AC5;
+    color: #FFFFFF;
+}
+
+QMenu {
+    background-color: #FFFFFF;
+    border: 1px solid #999999;
+    padding: 2px;
+}
+
+QMenu::item {
+    background-color: transparent;
+    padding: 3px 26px 3px 22px;
+    color: #000000;
+}
+
+QMenu::item:selected {
+    background-color: #316AC5;
+    color: #FFFFFF;
+}
+
+QMenu::separator {
+    height: 1px;
+    background-color: #D4D4D4;
+    margin: 3px 2px;
+}
+
+/* ToolBar - Crisp Off-White */
+QToolBar {
+    background-color: #F0F0F0;
+    border-top: 1px solid #FFFFFF;
+    border-bottom: 1px solid #C0C0C0;
+    spacing: 3px;
+    padding: 1px 2px;
+}
+
+QToolButton {
+    background-color: transparent;
+    border: 1px solid transparent;
+    padding: 2px 4px;
+    margin: 1px;
+    font-size: 11px;
+}
+
+QToolButton:hover {
+    background-color: #E4E4E4;
+    border: 1px solid #B0B0B0;
+}
+
+QToolButton:pressed {
+    background-color: #D8D8D8;
+    border: 1px solid #888888;
+}
+
+/* Win32 Classic PushButtons */
+QPushButton {
+    background-color: #E8E8E8;
+    border-top: 1px solid #FFFFFF;
+    border-left: 1px solid #FFFFFF;
+    border-right: 1px solid #888888;
+    border-bottom: 1px solid #888888;
+    padding: 3px 8px;
+    min-height: 16px;
+    outline: none;
+}
+
+QPushButton:focus {
+    border: 1px solid #000000;
+}
+
+QPushButton:pressed {
+    border-top: 1px solid #888888;
+    border-left: 1px solid #888888;
+    border-right: 1px solid #FFFFFF;
+    border-bottom: 1px solid #FFFFFF;
+    padding-top: 4px;
+    padding-left: 9px;
+}
+
+QPushButton:disabled {
+    color: #888888;
+    border: 1px solid #C0C0C0;
+}
+
+/* LineEdit with sunken border */
+QLineEdit, QTextEdit, QPlainTextEdit {
+    background-color: #FFFFFF;
+    color: #000000;
+    border-top: 1px solid #7F9DB9;
+    border-left: 1px solid #7F9DB9;
+    border-right: 1px solid #D0D0D0;
+    border-bottom: 1px solid #D0D0D0;
+    selection-background-color: #316AC5;
+    selection-color: #FFFFFF;
+    padding: 1px 3px;
+}
+
+/* Sunken 3D Terminal Container Frame (Pure White canvas inside) */
+QFrame#TerminalContainer {
+    background-color: #FFFFFF;
+    border-top: 2px solid #808080;
+    border-left: 2px solid #808080;
+    border-right: 2px solid #FFFFFF;
+    border-bottom: 2px solid #FFFFFF;
+}
+
+/* StatusBar */
+QStatusBar {
+    background-color: #F0F0F0;
+    border-top: 1px solid #C0C0C0;
+}
+
+QStatusBar::item {
+    border-top: 1px solid #A0A0A0;
+    border-left: 1px solid #A0A0A0;
+    border-right: 1px solid #FFFFFF;
+    border-bottom: 1px solid #FFFFFF;
+    padding: 1px 4px;
+}
+
+/* TreeView & TableView with sunken border */
+QTreeView, QTableView, QListView, QTableWidget, QTreeWidget, QListWidget {
+    background-color: #FFFFFF;
+    border-top: 1px solid #7F9DB9;
+    border-left: 1px solid #7F9DB9;
+    border-right: 1px solid #D0D0D0;
+    border-bottom: 1px solid #D0D0D0;
+    selection-background-color: #316AC5;
+    selection-color: #FFFFFF;
+}
+
+QHeaderView::section {
+    background-color: #E8E8E8;
+    border-top: 1px solid #FFFFFF;
+    border-left: 1px solid #FFFFFF;
+    border-right: 1px solid #B0B0B0;
+    border-bottom: 1px solid #B0B0B0;
+    padding: 2px 4px;
+}
+
+/* Classic TabWidget & ProfileBar Tabs */
+QTabWidget::pane {
+    border: 1px solid #999999;
+    background-color: #F0F0F0;
+}
+
+QTabBar::tab {
+    background-color: #E4E4E4;
+    border-top: 1px solid #FFFFFF;
+    border-left: 1px solid #FFFFFF;
+    border-right: 1px solid #999999;
+    border-bottom: 1px solid #999999;
+    padding: 3px 10px;
+    margin-right: 2px;
+}
+
+QTabBar::tab:selected {
+    background-color: #FFFFFF;
+    border-bottom: 1px solid #FFFFFF;
+}

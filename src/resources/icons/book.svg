@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+  <!-- Purple Book (Help Manual) -->
+  <path d="M4 4 L17 2 L21 5 L8 7 Z" fill="#660066" stroke="#330033" stroke-width="1"/>
+  <path d="M4 4 L8 7 L8 21 L4 18 Z" fill="#990099" stroke="#330033" stroke-width="1"/>
+  <path d="M8 7 L21 5 L21 19 L8 21 Z" fill="#AA00AA" stroke="#330033" stroke-width="1"/>
+  <path d="M8 21 L21 19 L21 20 L8 22 Z" fill="#E0E0E0"/>
+</svg>

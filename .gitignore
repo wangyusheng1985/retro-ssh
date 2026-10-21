@@ -1,0 +1,25 @@
+# Build artifacts
+build/
+bin/
+out/
+*.o
+*.a
+*.dylib
+*.app/
+
+# CMake / IDE
+CMakeUserPresets.json
+compile_commands.json
+.cache/
+.vscode/
+.idea/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Temporary files
+*.swp
+*~

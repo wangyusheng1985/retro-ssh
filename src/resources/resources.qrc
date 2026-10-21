@@ -1,0 +1,23 @@
+<RCC>
+    <qresource prefix="/">
+        <file>classic_win32.qss</file>
+        <file>icons/app_icon.svg</file>
+        <file>icons/quick_connect.svg</file>
+        <file>icons/connect.svg</file>
+        <file>icons/disconnect.svg</file>
+        <file>icons/settings.svg</file>
+        <file>icons/sftp.svg</file>
+        <file>icons/dual_pc.svg</file>
+        <file>icons/ssh_logo.svg</file>
+        <file>icons/find.svg</file>
+        <file>icons/book.svg</file>
+        <file>icons/help_arrow.svg</file>
+        <file>icons/net_status.svg</file>
+        <file>icons/save.svg</file>
+        <file>icons/print.svg</file>
+        <file>icons/print_preview.svg</file>
+        <file>icons/copy.svg</file>
+        <file>icons/paste.svg</file>
+        <file>icons/tunnel.svg</file>
+    </qresource>
+</RCC>

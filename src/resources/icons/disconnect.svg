@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" width="20" height="20">
+  <!-- Classic Disconnected Terminal with Red Cross -->
+  <!-- Beige casing (dimmed/grayed) -->
+  <rect x="2" y="2" width="16" height="12" rx="1.5" fill="#D4D0C8" stroke="#808080" stroke-width="1"/>
+  <!-- Dark blank screen glass -->
+  <rect x="4" y="4" width="12" height="8" rx="1" fill="#404040"/>
+  <!-- Stand -->
+  <rect x="8" y="14" width="4" height="2" fill="#B0ACA0" stroke="#808080" stroke-width="0.8"/>
+  <path d="M4 16 L16 16 L17 18 L3 18 Z" fill="#C0BCB0" stroke="#808080" stroke-width="0.8"/>
+  <!-- Prominent Vintage Red Cross X -->
+  <line x1="4" y1="3" x2="16" y2="15" stroke="#E00000" stroke-width="2.6" stroke-linecap="square"/>
+  <line x1="16" y1="3" x2="4" y2="15" stroke="#E00000" stroke-width="2.6" stroke-linecap="square"/>
+</svg>
