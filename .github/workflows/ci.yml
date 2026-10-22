@@ -111,6 +111,12 @@ jobs:
           echo "macOS build verified: build/RetroSSH.app"
 
       # Windows (x86_64 MSVC) setup
+      - name: Setup MSVC environment
+        if: runner.os == 'Windows'
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
       - name: Setup Qt on Windows
         if: runner.os == 'Windows'
         uses: jurplel/install-qt-action@v3
@@ -131,26 +137,32 @@ jobs:
 
       - name: Install Windows Dependencies via vcpkg
         if: runner.os == 'Windows'
-        shell: bash
+        shell: pwsh
         run: |
           vcpkg install libssh2:x64-windows openssl:x64-windows
 
       - name: Configure & Build on Windows
         if: runner.os == 'Windows'
-        shell: bash
+        shell: pwsh
         run: |
-          cmake -B build \
-            -G "Visual Studio 17 2022" -A x64 \
-            -DCMAKE_TOOLCHAIN_FILE="$VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake" \
-            -DVCPKG_TARGET_TRIPLET="x64-windows" \
-            -DCMAKE_BUILD_TYPE=Release \
+          cmake -B build `
+            -G "Ninja" `
+            -DCMAKE_PREFIX_PATH="$env:Qt5_Dir" `
+            -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake" `
+            -DVCPKG_TARGET_TRIPLET="x64-windows" `
+            -DCMAKE_BUILD_TYPE=Release `
             -DBUILD_TESTING=OFF
 
-          cmake --build build --config Release --parallel
+          cmake --build build --config Release
 
       - name: Verify Windows Build Artifact
         if: runner.os == 'Windows'
-        shell: bash
+        shell: pwsh
         run: |
-          test -f build/Release/RetroSSH.exe
-          echo "Windows build verified: build/Release/RetroSSH.exe"
+          if (Test-Path "build/RetroSSH.exe") {
+            Write-Host "Windows build verified: build/RetroSSH.exe"
+          } elseif (Test-Path "build/Release/RetroSSH.exe") {
+            Write-Host "Windows build verified: build/Release/RetroSSH.exe"
+          } else {
+            throw "RetroSSH.exe was not generated"
+          }
