@@ -14,32 +14,32 @@ struct ProfileData {
     QString terminal = "vt100";
 
     // Appearance & Font
-    QString fontFamily = "Courier New";
-    int fontSize = 10;
+    QString fontFamily = "SF Mono";
+    int fontSize = 11;
     int scrollbackBuffer = 1000;
     bool scrollOnOutput = true;
     bool pasteOnRightClick = false;
 
     // Colors
-    QString fgColor = "Black";
-    QString bgColor = "White";
-    QString selColor = "Aqua";
-    QString cursorColor = "Blue";
+    QString fgColor = "#1F2328";
+    QString bgColor = "#FAFBFC";
+    QString selColor = "#B6D7FF";
+    QString cursorColor = "#0969DA";
     bool enableAnsiColors = true;
     bool reverseVideo = false;
 };
 
 struct GlobalAppearanceSettings {
-    QString fontFamily = "Courier New";
-    int fontSize = 10;
+    QString fontFamily = "SF Mono";
+    int fontSize = 11;
     int scrollbackBuffer = 1000;
     bool scrollOnOutput = true;
     bool pasteOnRightClick = false;
 
-    QString fgColor = "Black";
-    QString bgColor = "White";
-    QString selColor = "Aqua";
-    QString cursorColor = "Blue";
+    QString fgColor = "#1F2328";
+    QString bgColor = "#FAFBFC";
+    QString selColor = "#B6D7FF";
+    QString cursorColor = "#0969DA";
     bool enableAnsiColors = true;
     bool reverseVideo = false;
 };
@@ -73,15 +73,15 @@ public:
 
     void loadGlobalAppearance() {
         QSettings s("RetroSSH", "Settings");
-        m_globalAppearance.fontFamily = s.value("fontFamily", "Courier New").toString();
-        m_globalAppearance.fontSize = s.value("fontSize", 10).toInt();
+        m_globalAppearance.fontFamily = s.value("fontFamily", "SF Mono").toString();
+        m_globalAppearance.fontSize = s.value("fontSize", 11).toInt();
         m_globalAppearance.scrollbackBuffer = s.value("scrollbackBuffer", 1000).toInt();
         m_globalAppearance.scrollOnOutput = s.value("scrollOnOutput", true).toBool();
         m_globalAppearance.pasteOnRightClick = s.value("pasteOnRightClick", false).toBool();
-        m_globalAppearance.fgColor = s.value("fgColor", "Black").toString();
-        m_globalAppearance.bgColor = s.value("bgColor", "White").toString();
-        m_globalAppearance.selColor = s.value("selColor", "Aqua").toString();
-        m_globalAppearance.cursorColor = s.value("cursorColor", "Blue").toString();
+        m_globalAppearance.fgColor = s.value("fgColor", "#1F2328").toString();
+        m_globalAppearance.bgColor = s.value("bgColor", "#FAFBFC").toString();
+        m_globalAppearance.selColor = s.value("selColor", "#B6D7FF").toString();
+        m_globalAppearance.cursorColor = s.value("cursorColor", "#0969DA").toString();
         m_globalAppearance.enableAnsiColors = s.value("enableAnsiColors", true).toBool();
         m_globalAppearance.reverseVideo = s.value("reverseVideo", false).toBool();
     }
@@ -104,15 +104,15 @@ public:
             p.compression = s.value("compression", "<None>").toString();
             p.terminal = s.value("terminal", "vt100").toString();
 
-            p.fontFamily = s.value("fontFamily", "Courier New").toString();
-            p.fontSize = s.value("fontSize", 10).toInt();
+            p.fontFamily = s.value("fontFamily", "SF Mono").toString();
+            p.fontSize = s.value("fontSize", 11).toInt();
             p.scrollbackBuffer = s.value("scrollbackBuffer", 1000).toInt();
             p.scrollOnOutput = s.value("scrollOnOutput", true).toBool();
             p.pasteOnRightClick = s.value("pasteOnRightClick", false).toBool();
-            p.fgColor = s.value("fgColor", "Black").toString();
-            p.bgColor = s.value("bgColor", "White").toString();
-            p.selColor = s.value("selColor", "Aqua").toString();
-            p.cursorColor = s.value("cursorColor", "Blue").toString();
+            p.fgColor = s.value("fgColor", "#1F2328").toString();
+            p.bgColor = s.value("bgColor", "#FAFBFC").toString();
+            p.selColor = s.value("selColor", "#B6D7FF").toString();
+            p.cursorColor = s.value("cursorColor", "#0969DA").toString();
             p.enableAnsiColors = s.value("enableAnsiColors", true).toBool();
             p.reverseVideo = s.value("reverseVideo", false).toBool();
 

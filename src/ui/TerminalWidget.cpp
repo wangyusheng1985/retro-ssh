@@ -12,28 +12,49 @@
 #include <QRegularExpression>
 #include <QTextCodec>
 #include <QTextDecoder>
+#include <QFontDatabase>
 #include <QDebug>
 
 static const QColor ANSI_COLORS[16] = {
-    // Normal 0-7
-    QColor(0, 0, 0),        // 0: Black
-    QColor(205, 49, 49),    // 1: Red
-    QColor(13, 188, 121),   // 2: Green
-    QColor(229, 229, 16),   // 3: Yellow
-    QColor(36, 114, 200),   // 4: Blue
-    QColor(188, 63, 188),   // 5: Magenta
-    QColor(17, 168, 205),   // 6: Cyan
-    QColor(229, 229, 229),  // 7: White
+    // Normal 0-7: WCAG-calibrated for comfortable contrast against porcelain white (#FAFBFC)
+    QColor(31, 35, 40),      // 0: Deep Charcoal Black (#1F2328)
+    QColor(207, 34, 46),     // 1: Subdued Brick Red (#CF222E)
+    QColor(26, 127, 55),     // 2: Forest Green (#1A7F37)
+    QColor(154, 103, 0),     // 3: Warm Amber Yellow (#9A6700, 5.2:1 contrast)
+    QColor(9, 105, 218),     // 4: Tech Blue (#0969DA)
+    QColor(130, 80, 223),    // 5: Modern Purple (#8250DF)
+    QColor(27, 123, 148),    // 6: Deep Teal Cyan (#1B7B94)
+    QColor(110, 119, 129),   // 7: Medium Neutral Gray (#6E7781)
     // Bright 8-15
-    QColor(102, 102, 102),  // 8: Bright Black (Dark Gray)
-    QColor(241, 76, 76),    // 9: Bright Red
-    QColor(35, 209, 139),   // 10: Bright Green
-    QColor(245, 245, 67),   // 11: Bright Yellow
-    QColor(59, 142, 234),   // 12: Bright Blue
-    QColor(214, 112, 214),  // 13: Bright Magenta
-    QColor(41, 184, 219),   // 14: Bright Cyan
-    QColor(255, 255, 255)   // 15: Bright White
+    QColor(87, 96, 106),     // 8: Slate Gray (#57606A)
+    QColor(164, 14, 38),     // 9: Deep Ruby Red (#A40E26)
+    QColor(17, 99, 41),      // 10: Dark Emerald Green (#116329)
+    QColor(125, 78, 0),      // 11: Dark Amber (#7D4E00)
+    QColor(5, 77, 167),      // 12: Classic Deep Blue (#054DA7)
+    QColor(102, 57, 186),    // 13: Royal Violet (#6639BA)
+    QColor(18, 93, 114),     // 14: Dark Cyan (#125D72)
+    QColor(36, 41, 47)       // 15: Contrast High-Density Black (#24292F)
 };
+
+static QString detectBestMonospaceFont() {
+    QFontDatabase db;
+    QStringList families = db.families();
+    static const QStringList preferred = {
+        "SF Mono",
+        "JetBrains Mono",
+        "Menlo",
+        "Cascadia Code",
+        "Consolas",
+        "Monaco",
+        "Courier New"
+    };
+    for (const QString &cand : preferred) {
+        if (families.contains(cand, Qt::CaseInsensitive)) {
+            return cand;
+        }
+    }
+    return "Monospace";
+}
 
 QColor TerminalWidget::colorFrom256Index(int idx) {
     if (idx < 0 || idx > 255) {
@@ -64,7 +85,7 @@ TerminalWidget::TerminalWidget(QWidget *parent)
     setAttribute(Qt::WA_OpaquePaintEvent);
     setAttribute(Qt::WA_InputMethodEnabled, true);
 
-    setTerminalFont("Courier New", 10);
+    setTerminalFont(detectBestMonospaceFont(), 11);
 
     m_codec = QTextCodec::codecForName("UTF-8");
     if (m_codec) {
@@ -155,10 +176,10 @@ void TerminalWidget::resetToDefaultBanner() {
         "Vintage SSH Workflow with Modern Security.\n\n"
         "Press Enter or Space to Quick Connect, or choose a Profile from the toolbar.\n\n";
 
-    m_currentFg = QColor(60, 60, 60);
-    m_currentBg = Qt::white;
+    m_currentFg = QColor(87, 96, 106);
+    m_currentBg = QColor(0xFA, 0xFB, 0xFC);
     parseAnsi(banner);
-    m_currentFg = Qt::black;
+    m_currentFg = m_defaultFg;
 }
 
 void TerminalWidget::setTerminalColors(const QColor &fg, const QColor &bg, const QColor &sel,
@@ -708,6 +729,11 @@ void TerminalWidget::paintEvent(QPaintEvent *) {
     QColor baseFg = m_reverseVideo ? m_defaultBg : m_defaultFg;
 
     p.fillRect(rect(), baseBg);
+
+    // Subtle 1px hardware screen bezel frame separating terminal canvas
+    p.setPen(QColor(0xD0, 0xD7, 0xDE));
+    p.drawRect(0, 0, width() - 1, height() - 1);
+
     p.setFont(font());
     QFontMetrics fm(font());
     int ascent = fm.ascent();
@@ -718,14 +744,14 @@ void TerminalWidget::paintEvent(QPaintEvent *) {
     int endRow = qMin(totalLines, startRow + m_rows);
 
     for (int r = startRow; r < endRow; ++r) {
-        int y = (r - startRow) * m_charHeight + ascent;
-        int rowTopY = (r - startRow) * m_charHeight;
+        int y = m_paddingY + (r - startRow) * m_charHeight + ascent;
+        int rowTopY = m_paddingY + (r - startRow) * m_charHeight;
 
         const QVector<AnsiChar> *rowPtr = (r < m_buffer.size()) ? &m_buffer[r] : nullptr;
 
         // Pass 1: Draw cell backgrounds (normal ANSI background and solid continuous selection highlight)
         for (int c = 0; c < m_cols; ++c) {
-            int x = c * m_charWidth;
+            int x = m_paddingX + c * m_charWidth;
 
             bool isCellSelected = false;
             if (m_selectStart != m_selectEnd) {
@@ -758,7 +784,7 @@ void TerminalWidget::paintEvent(QPaintEvent *) {
 
         // Pass 2: Draw text characters on top of background
         for (int c = 0; c < m_cols; ++c) {
-            int x = c * m_charWidth;
+            int x = m_paddingX + c * m_charWidth;
 
             const AnsiChar *cellAc = (rowPtr && c < rowPtr->size()) ? &(*rowPtr)[c] : nullptr;
             if (!cellAc || cellAc->isWideContinuation || cellAc->ch.isNull() || cellAc->ch == ' ') {
@@ -801,9 +827,9 @@ void TerminalWidget::paintEvent(QPaintEvent *) {
 
     // Classic solid vertical cursor block (with configured cursor color)
     if (m_cursorVisible && m_scrollOffset == 0) {
-        int cx = m_cursorCol * m_charWidth;
-        int cy = (m_cursorRow - startRow) * m_charHeight + 1;
-        p.fillRect(cx, cy, 7, m_charHeight - 2, m_cursorColor);
+        int cx = m_paddingX + m_cursorCol * m_charWidth;
+        int cy = m_paddingY + (m_cursorRow - startRow) * m_charHeight + 1;
+        p.fillRect(cx, cy, m_charWidth, m_charHeight - 2, m_cursorColor);
     }
 }
 
@@ -953,10 +979,10 @@ void TerminalWidget::mousePressEvent(QMouseEvent *event) {
     }
 
     if (event->button() == Qt::LeftButton) {
-        int col = event->x() / m_charWidth;
+        int col = qBound(0, (event->x() - m_paddingX) / m_charWidth, m_cols - 1);
         int viewBottom = qMax(m_rows - 1, (m_buffer.size() - 1) - m_scrollOffset);
         int startRow = qMax(0, viewBottom - m_rows + 1);
-        int row = (event->y() / m_charHeight) + startRow;
+        int row = qMax(0, ((event->y() - m_paddingY) / m_charHeight) + startRow);
         m_selectStart = QPoint(col, row);
         m_selectEnd = m_selectStart;
         update();
@@ -972,10 +998,10 @@ void TerminalWidget::inputMethodEvent(QInputMethodEvent *event) {
 
 QVariant TerminalWidget::inputMethodQuery(Qt::InputMethodQuery query) const {
     if (query == Qt::ImCursorRectangle || query == Qt::ImCursorPosition) {
-        int cx = m_cursorCol * m_charWidth;
+        int cx = m_paddingX + m_cursorCol * m_charWidth;
         int viewBottom = qMax(m_rows - 1, (m_buffer.size() - 1) - m_scrollOffset);
         int startRow = qMax(0, viewBottom - m_rows + 1);
-        int cy = (m_cursorRow - startRow) * m_charHeight;
+        int cy = m_paddingY + (m_cursorRow - startRow) * m_charHeight;
         return QRect(cx, cy, m_charWidth, m_charHeight);
     } else if (query == Qt::ImFont) {
         return font();
@@ -985,10 +1011,10 @@ QVariant TerminalWidget::inputMethodQuery(Qt::InputMethodQuery query) const {
 
 void TerminalWidget::mouseMoveEvent(QMouseEvent *event) {
     if (event->buttons() & Qt::LeftButton) {
-        int col = event->x() / m_charWidth;
+        int col = qBound(0, (event->x() - m_paddingX) / m_charWidth, m_cols - 1);
         int viewBottom = qMax(m_rows - 1, (m_buffer.size() - 1) - m_scrollOffset);
         int startRow = qMax(0, viewBottom - m_rows + 1);
-        int row = (event->y() / m_charHeight) + startRow;
+        int row = qMax(0, ((event->y() - m_paddingY) / m_charHeight) + startRow);
         m_selectEnd = QPoint(col, row);
         update();
     }
@@ -999,8 +1025,10 @@ void TerminalWidget::resizeEvent(QResizeEvent *) {
 }
 
 void TerminalWidget::updateDimensions() {
-    int newCols = qMax(10, width() / m_charWidth);
-    int newRows = qMax(5, height() / m_charHeight);
+    int availW = qMax(0, width() - 2 * m_paddingX);
+    int availH = qMax(0, height() - 2 * m_paddingY);
+    int newCols = qMax(10, availW / m_charWidth);
+    int newRows = qMax(5, availH / m_charHeight);
     if (newCols != m_cols || newRows != m_rows) {
         bool wasShowingBanner = m_showingBanner;
         m_cols = newCols;

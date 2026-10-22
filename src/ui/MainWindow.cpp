@@ -27,7 +27,7 @@ MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent) {
     setWindowTitle("RetroSSH");
     setWindowIcon(QIcon(":/icons/app_icon.svg"));
-    resize(820, 560);
+    resize(860, 580);
 
     // Central Stacked Widget holding terminal sessions
     m_sessionStack = new QStackedWidget(this);

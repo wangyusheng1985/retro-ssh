@@ -9,8 +9,8 @@
 
 struct AnsiChar {
     QChar ch;
-    QColor fg = Qt::black;
-    QColor bg = Qt::white;
+    QColor fg = QColor(0x1F, 0x23, 0x28);
+    QColor bg = QColor(0xFA, 0xFB, 0xFC);
     bool bold = false;
     bool underline = false;
     bool isWideContinuation = false; // Second half of a 2-column wide character (e.g. CJK)
@@ -121,20 +121,24 @@ private:
     bool m_pasteOnRightClick = false;
 
     // Configurable terminal colors (from Settings -> Colors)
-    QColor m_defaultFg = Qt::black;
-    QColor m_defaultBg = Qt::white;
-    QColor m_selectionColor = QColor(0, 255, 255); // Aqua
-    QColor m_cursorColor = QColor(0, 0, 255);      // Blue
+    QColor m_defaultFg = QColor(0x1F, 0x23, 0x28);
+    QColor m_defaultBg = QColor(0xFA, 0xFB, 0xFC);
+    QColor m_selectionColor = QColor(0xB6, 0xD7, 0xFF); // Soft sky-blue selection
+    QColor m_cursorColor = QColor(0x09, 0x69, 0xDA);    // Tech blue solid block cursor
     bool m_enableAnsiColors = true;
     bool m_reverseVideo = false;
+
+    // Viewport padding for modern breathing room
+    int m_paddingX = 14;
+    int m_paddingY = 14;
 
     bool m_showingBanner = false;
 
     QScrollBar *m_scrollBar = nullptr;
 
     QVector<QVector<AnsiChar>> m_buffer;
-    QColor m_currentFg = Qt::black;
-    QColor m_currentBg = Qt::white;
+    QColor m_currentFg = QColor(0x1F, 0x23, 0x28);
+    QColor m_currentBg = QColor(0xFA, 0xFB, 0xFC);
     bool m_currentBold = false;
     bool m_currentUnderline = false;
 
