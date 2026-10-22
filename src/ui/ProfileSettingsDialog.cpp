@@ -615,9 +615,13 @@ bool ProfileSettingsDialog::getReverseVideo() const {
 
 QString ProfileSettingsDialog::getSelectedFontFamily() const {
     if (m_fontFamilyList && m_fontFamilyList->currentItem()) {
-        return m_fontFamilyList->currentItem()->text();
+        QString f = m_fontFamilyList->currentItem()->text();
+        if (f.startsWith("TT  ")) {
+            f = f.mid(4);
+        }
+        return f;
     }
-    return "Courier New";
+    return "SF Mono";
 }
 
 int ProfileSettingsDialog::getSelectedFontSize() const {

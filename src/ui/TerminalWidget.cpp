@@ -132,13 +132,12 @@ bool TerminalWidget::isWideChar(QChar ch) {
 }
 
 void TerminalWidget::setTerminalFont(const QString &family, int pointSize) {
-    m_fontFamily = family;
-    m_fontSize = pointSize;
-
     QString actualFamily = family;
     if (actualFamily.startsWith("TT  ")) {
         actualFamily = actualFamily.mid(4);
     }
+    m_fontFamily = actualFamily;
+    m_fontSize = pointSize;
 
     QFont termFont(actualFamily, pointSize);
     termFont.setStyleHint(QFont::Monospace);

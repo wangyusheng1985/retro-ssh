@@ -57,8 +57,11 @@ public:
 
     void saveGlobalAppearance(const GlobalAppearanceSettings &g) {
         m_globalAppearance = g;
+        if (m_globalAppearance.fontFamily.startsWith("TT  ")) {
+            m_globalAppearance.fontFamily = m_globalAppearance.fontFamily.mid(4);
+        }
         QSettings s("RetroSSH", "Settings");
-        s.setValue("fontFamily", g.fontFamily);
+        s.setValue("fontFamily", m_globalAppearance.fontFamily);
         s.setValue("fontSize", g.fontSize);
         s.setValue("scrollbackBuffer", g.scrollbackBuffer);
         s.setValue("scrollOnOutput", g.scrollOnOutput);
@@ -69,11 +72,15 @@ public:
         s.setValue("cursorColor", g.cursorColor);
         s.setValue("enableAnsiColors", g.enableAnsiColors);
         s.setValue("reverseVideo", g.reverseVideo);
+        s.sync();
     }
 
     void loadGlobalAppearance() {
         QSettings s("RetroSSH", "Settings");
         m_globalAppearance.fontFamily = s.value("fontFamily", "SF Mono").toString();
+        if (m_globalAppearance.fontFamily.startsWith("TT  ")) {
+            m_globalAppearance.fontFamily = m_globalAppearance.fontFamily.mid(4);
+        }
         m_globalAppearance.fontSize = s.value("fontSize", 11).toInt();
         m_globalAppearance.scrollbackBuffer = s.value("scrollbackBuffer", 1000).toInt();
         m_globalAppearance.scrollOnOutput = s.value("scrollOnOutput", true).toBool();
@@ -105,6 +112,9 @@ public:
             p.terminal = s.value("terminal", "vt100").toString();
 
             p.fontFamily = s.value("fontFamily", "SF Mono").toString();
+            if (p.fontFamily.startsWith("TT  ")) {
+                p.fontFamily = p.fontFamily.mid(4);
+            }
             p.fontSize = s.value("fontSize", 11).toInt();
             p.scrollbackBuffer = s.value("scrollbackBuffer", 1000).toInt();
             p.scrollOnOutput = s.value("scrollOnOutput", true).toBool();
@@ -152,6 +162,7 @@ public:
             s.setValue("reverseVideo", it.value().reverseVideo);
         }
         s.endArray();
+        s.sync();
     }
 
     QMap<QString, ProfileData> getProfiles() const { return m_profiles; }

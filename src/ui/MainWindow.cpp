@@ -125,6 +125,9 @@ int MainWindow::createNewSessionTab(const QString &title, const SshConnectionPar
 
     // Apply saved profile specific appearance/colors if available
     QString lookupName = title.isEmpty() ? params.host : title;
+    if (lookupName.isEmpty() && ProfileManager::instance().hasProfile("default")) {
+        lookupName = "default";
+    }
     if (ProfileManager::instance().hasProfile(lookupName)) {
         ProfileData p = ProfileManager::instance().getProfile(lookupName);
         if (!p.fontFamily.isEmpty()) {
@@ -178,7 +181,9 @@ int MainWindow::createNewSessionTab(const QString &title, const SshConnectionPar
         }
     });
 
-    connect(term, &TerminalWidget::newTerminalRequested, this, &MainWindow::onConnectTriggered);
+    connect(term, &TerminalWidget::newTerminalRequested, this, [this]() {
+        createNewSessionTab("", m_currentParams);
+    });
     connect(term, &TerminalWidget::newFileTransferRequested, this, &MainWindow::onSftpTriggered);
     connect(term, &TerminalWidget::quickConnectRequested, this, &MainWindow::onQuickConnectTriggered);
     connect(term, &TerminalWidget::closeWindowRequested, this, &QWidget::close);
@@ -796,6 +801,23 @@ void MainWindow::onSettingsTriggered() {
         g.enableAnsiColors = updated.enableAnsiColors;
         g.reverseVideo = updated.reverseVideo;
         ProfileManager::instance().saveGlobalAppearance(g);
+
+        // If the current session is associated with a saved profile, synchronize and persist that profile
+        if (s && !s->title.isEmpty() && ProfileManager::instance().hasProfile(s->title)) {
+            ProfileData prof = ProfileManager::instance().getProfile(s->title);
+            prof.fontFamily = updated.fontFamily;
+            prof.fontSize = updated.fontSize;
+            prof.scrollbackBuffer = updated.scrollbackBuffer;
+            prof.scrollOnOutput = updated.scrollOnOutput;
+            prof.pasteOnRightClick = updated.pasteOnRightClick;
+            prof.fgColor = updated.fgColor;
+            prof.bgColor = updated.bgColor;
+            prof.selColor = updated.selColor;
+            prof.cursorColor = updated.cursorColor;
+            prof.enableAnsiColors = updated.enableAnsiColors;
+            prof.reverseVideo = updated.reverseVideo;
+            ProfileManager::instance().addOrUpdateProfile(prof);
+        }
 
         // Apply updated font/colors to all existing terminal sessions
         for (auto &sess : m_sessions) {
