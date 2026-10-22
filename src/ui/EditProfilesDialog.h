@@ -259,6 +259,10 @@ private:
         QCheckBox *tunnelOnlyCb = new QCheckBox("Request tunnels only (disable terminal)", w);
         vl->addWidget(tunnelOnlyCb);
 
+        m_keepAliveCb = new QCheckBox("Keep alive (prevent timeout)", w);
+        m_keepAliveCb->setChecked(true);
+        vl->addWidget(m_keepAliveCb);
+
         vl->addStretch();
         return w;
     }
@@ -341,6 +345,9 @@ private:
         m_macCombo->setCurrentText(p.mac);
         m_compCombo->setCurrentText(p.compression);
         m_termCombo->setCurrentText(p.terminal);
+        if (m_keepAliveCb) {
+            m_keepAliveCb->setChecked(p.keepAlive);
+        }
     }
 
     void saveCurrentProfileData() {
@@ -354,6 +361,10 @@ private:
         p.mac = m_macCombo->currentText();
         p.compression = m_compCombo->currentText();
         p.terminal = m_termCombo->currentText();
+        if (m_keepAliveCb) {
+            p.keepAlive = m_keepAliveCb->isChecked();
+            p.params.keepAlive = p.keepAlive;
+        }
         ProfileManager::instance().addOrUpdateProfile(p);
     }
 
@@ -398,4 +409,5 @@ private:
     QComboBox *m_macCombo = nullptr;
     QComboBox *m_compCombo = nullptr;
     QComboBox *m_termCombo = nullptr;
+    QCheckBox *m_keepAliveCb = nullptr;
 };

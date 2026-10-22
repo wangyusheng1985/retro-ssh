@@ -7,6 +7,7 @@
 #include <QHeaderView>
 #include <QGroupBox>
 #include <QFontDatabase>
+#include <QSet>
 
 ProfileSettingsDialog::ProfileSettingsDialog(QWidget *parent)
     : QDialog(parent) {
@@ -46,8 +47,8 @@ ProfileSettingsDialog::ProfileSettingsDialog(QWidget *parent)
     m_pages->addWidget(createCipherPage());           // Index 1
     m_pages->addWidget(createAuthenticationPage());   // Index 2
     m_pages->addWidget(createFontPage());             // Index 3
-    m_pages->addWidget(createAppearancePage());       // Index 4
-    m_pages->addWidget(createColorsPage());           // Index 5
+    m_pages->addWidget(createColorsPage());           // Index 4
+    m_pages->addWidget(createMessagesPage());         // Index 5
 
     contentLayout->addWidget(m_pages, 1);
     rootLayout->addLayout(contentLayout, 1);
@@ -79,58 +80,39 @@ ProfileSettingsDialog::ProfileSettingsDialog(QWidget *parent)
         m_pages->setCurrentIndex(pageIdx);
     });
 
-    m_tree->setCurrentItem(m_tree->topLevelItem(0)->child(0));
+    if (m_tree->topLevelItemCount() > 0) {
+        m_tree->setCurrentItem(m_tree->topLevelItem(0));
+    }
 }
 
 void ProfileSettingsDialog::setupTree() {
-    auto *profileRoot = new QTreeWidgetItem(m_tree, QStringList("Profile Settings"));
-    profileRoot->setExpanded(true);
+    m_tree->clear();
 
-    auto *itemConn = new QTreeWidgetItem(profileRoot, QStringList("Connection"));
+    // 1. Connection (Top-level) -> Page 0
+    auto *itemConn = new QTreeWidgetItem(m_tree, QStringList("Connection"));
     itemConn->setData(0, Qt::UserRole, 0);
 
+    // 1.1 Cipher List (Child of Connection) -> Page 1
     auto *itemCipher = new QTreeWidgetItem(itemConn, QStringList("Cipher List"));
     itemCipher->setData(0, Qt::UserRole, 1);
 
-    auto *itemAuth = new QTreeWidgetItem(profileRoot, QStringList("Authentication"));
+    itemConn->setExpanded(true);
+
+    // 2. Authentication (Top-level) -> Page 2
+    auto *itemAuth = new QTreeWidgetItem(m_tree, QStringList("Authentication"));
     itemAuth->setData(0, Qt::UserRole, 2);
 
-    auto *itemColors = new QTreeWidgetItem(profileRoot, QStringList("Colors"));
-    itemColors->setData(0, Qt::UserRole, 5);
+    // 3. Font (Top-level) -> Page 3
+    auto *itemFont = new QTreeWidgetItem(m_tree, QStringList("Font"));
+    itemFont->setData(0, Qt::UserRole, 3);
 
-    auto *itemKb = new QTreeWidgetItem(profileRoot, QStringList("Keyboard"));
-    itemKb->setData(0, Qt::UserRole, 0);
+    // 4. Colors (Top-level) -> Page 4
+    auto *itemColors = new QTreeWidgetItem(m_tree, QStringList("Colors"));
+    itemColors->setData(0, Qt::UserRole, 4);
 
-    auto *itemTunnel = new QTreeWidgetItem(profileRoot, QStringList("Tunneling"));
-    itemTunnel->setData(0, Qt::UserRole, 0);
-
-    auto *itemFt = new QTreeWidgetItem(profileRoot, QStringList("File Transfer"));
-    itemFt->setExpanded(true);
-    auto *itemRemFav = new QTreeWidgetItem(itemFt, QStringList("Remote Favorites"));
-    itemRemFav->setData(0, Qt::UserRole, 0);
-
-    auto *globalRoot = new QTreeWidgetItem(m_tree, QStringList("Global Settings"));
-    globalRoot->setExpanded(true);
-    auto *itemApp = new QTreeWidgetItem(globalRoot, QStringList("Appearance"));
-    itemApp->setExpanded(true);
-    itemApp->setData(0, Qt::UserRole, 4); // Index 4: Appearance Page
-
-    auto *itemFont = new QTreeWidgetItem(itemApp, QStringList("Font"));
-    itemFont->setData(0, Qt::UserRole, 3); // Index 3: Font page
-
-    auto *itemAppColors = new QTreeWidgetItem(itemApp, QStringList("Colors"));
-    itemAppColors->setData(0, Qt::UserRole, 5);
-
-    auto *itemMsg = new QTreeWidgetItem(itemApp, QStringList("Messages"));
-    itemMsg->setData(0, Qt::UserRole, 4);
-
-    auto *itemUserAuth = new QTreeWidgetItem(globalRoot, QStringList("User Authentication"));
-    auto *itemKeys = new QTreeWidgetItem(itemUserAuth, QStringList("Keys"));
-    itemKeys->setData(0, Qt::UserRole, 2);
-
-    auto *itemServerAuth = new QTreeWidgetItem(globalRoot, QStringList("Server Authentication"));
-    auto *itemGlobalFt = new QTreeWidgetItem(globalRoot, QStringList("File Transfer"));
-    itemGlobalFt->setData(0, Qt::UserRole, 0);
+    // 5. Messages (Top-level) -> Page 5
+    auto *itemMsg = new QTreeWidgetItem(m_tree, QStringList("Messages"));
+    itemMsg->setData(0, Qt::UserRole, 5);
 }
 
 static QWidget* createPageHeader(const QString &title) {
@@ -148,79 +130,49 @@ static QWidget* createPageHeader(const QString &title) {
     return header;
 }
 
-QWidget* ProfileSettingsDialog::createAppearancePage() {
+QWidget* ProfileSettingsDialog::createMessagesPage() {
     QWidget *w = new QWidget();
     QVBoxLayout *vl = new QVBoxLayout(w);
     vl->setContentsMargins(0, 0, 0, 0);
-    vl->setSpacing(6);
+    vl->setSpacing(8);
 
-    vl->addWidget(createPageHeader("Appearance"));
+    vl->addWidget(createPageHeader("Messages"));
 
-    vl->addWidget(new QLabel("Configure the appearance of the application.", w));
+    QLabel *desc = new QLabel("Configure message dialogs, confirmation prompts, and notification behaviors.", w);
+    desc->setWordWrap(true);
+    vl->addWidget(desc);
 
-    m_officeXpCb = new QCheckBox("Office XP look", w);
-    vl->addWidget(m_officeXpCb);
+    // GroupBox: Confirmation Prompts
+    QGroupBox *confirmGb = new QGroupBox("Confirmation Prompts", w);
+    QVBoxLayout *confirmVl = new QVBoxLayout(confirmGb);
+    confirmVl->setContentsMargins(8, 8, 8, 8);
+    confirmVl->setSpacing(6);
 
-    m_showAddProfileCb = new QCheckBox("Show the Add Profile dialog when using Quick Connect", w);
-    m_showAddProfileCb->setChecked(true);
-    vl->addWidget(m_showAddProfileCb);
+    m_confirmDisconnectCb = new QCheckBox("Confirm before disconnecting active session", confirmGb);
+    m_confirmDisconnectCb->setChecked(false);
+    confirmVl->addWidget(m_confirmDisconnectCb);
 
-    // GroupBox: Terminal settings (Screenshot 1:1)
-    QGroupBox *termGb = new QGroupBox("Terminal settings", w);
-    QVBoxLayout *termVl = new QVBoxLayout(termGb);
-    termVl->setContentsMargins(8, 8, 8, 8);
-    termVl->setSpacing(5);
+    m_confirmExitCb = new QCheckBox("Confirm before closing application with active sessions", confirmGb);
+    m_confirmExitCb->setChecked(true);
+    confirmVl->addWidget(m_confirmExitCb);
 
-    m_pasteOnRightClickCb = new QCheckBox("Paste on right mouse click", termGb);
-    termVl->addWidget(m_pasteOnRightClickCb);
+    vl->addWidget(confirmGb);
 
-    m_scrollBottomOnOutputCb = new QCheckBox("Scroll bottom on output", termGb);
-    m_scrollBottomOnOutputCb->setChecked(true);
-    termVl->addWidget(m_scrollBottomOnOutputCb);
+    // GroupBox: Status & Error Notifications
+    QGroupBox *notifyGb = new QGroupBox("Status & Error Notifications", w);
+    QVBoxLayout *notifyVl = new QVBoxLayout(notifyGb);
+    notifyVl->setContentsMargins(8, 8, 8, 8);
+    notifyVl->setSpacing(6);
 
-    QHBoxLayout *sbHl = new QHBoxLayout();
-    sbHl->addWidget(new QLabel("Scrollback buffer", termGb));
-    m_scrollbackEdit = new QLineEdit("500", termGb);
-    m_scrollbackEdit->setFixedWidth(100);
-    sbHl->addWidget(m_scrollbackEdit);
-    sbHl->addWidget(new QLabel("lines", termGb));
-    sbHl->addStretch();
-    termVl->addLayout(sbHl);
+    m_showStatusBarMsgCb = new QCheckBox("Display connection status messages in status bar", notifyGb);
+    m_showStatusBarMsgCb->setChecked(true);
+    notifyVl->addWidget(m_showStatusBarMsgCb);
 
-    vl->addWidget(termGb);
+    m_showErrorDialogsCb = new QCheckBox("Display error dialogs when connection fails", notifyGb);
+    m_showErrorDialogsCb->setChecked(true);
+    notifyVl->addWidget(m_showErrorDialogsCb);
 
-    // GroupBox: Window caption
-    QGroupBox *capGb = new QGroupBox("Window caption", w);
-    QVBoxLayout *capVl = new QVBoxLayout(capGb);
-    capVl->setContentsMargins(8, 8, 8, 8);
-    capVl->setSpacing(4);
-
-    m_dispProfileNameCb = new QCheckBox("Display profile name", capGb);
-    m_dispProfileNameCb->setChecked(true);
-    capVl->addWidget(m_dispProfileNameCb);
-
-    m_dispHostNameCb = new QCheckBox("Display host name", capGb);
-    m_dispHostNameCb->setChecked(true);
-    capVl->addWidget(m_dispHostNameCb);
-
-    vl->addWidget(capGb);
-
-    // GroupBox: Window layout
-    QGroupBox *layGb = new QGroupBox("Window layout", w);
-    QVBoxLayout *layVl = new QVBoxLayout(layGb);
-    layVl->setContentsMargins(8, 8, 8, 8);
-    layVl->setSpacing(4);
-
-    QLabel *layDesc = new QLabel(
-        "Check the box to open all windows immediately when the profile is chosen. Uncheck to open windows on demand in their previously configured positions.", layGb);
-    layDesc->setWordWrap(true);
-    layVl->addWidget(layDesc);
-
-    m_openAllWindowsCb = new QCheckBox("Open all windows of the profile", layGb);
-    m_openAllWindowsCb->setChecked(true);
-    layVl->addWidget(m_openAllWindowsCb);
-
-    vl->addWidget(layGb);
+    vl->addWidget(notifyGb);
     vl->addStretch();
     return w;
 }
@@ -294,6 +246,10 @@ QWidget* ProfileSettingsDialog::createConnectionPage() {
 
     QCheckBox *tunnelOnlyCb = new QCheckBox("Request tunnels only (disable terminal)", w);
     vl->addWidget(tunnelOnlyCb);
+
+    m_keepAliveCb = new QCheckBox("Keep alive (prevent timeout)", w);
+    m_keepAliveCb->setChecked(true);
+    vl->addWidget(m_keepAliveCb);
 
     vl->addStretch();
     return w;
@@ -427,14 +383,33 @@ QWidget* ProfileSettingsDialog::createFontPage() {
     fVl->addWidget(new QLabel("Font", w));
     m_fontFamilyList = new QListWidget(w);
     QFontDatabase db;
-    for (const QString &family : db.families()) {
-        if (db.isFixedPitch(family)) {
+    QStringList allFamilies = db.families();
+    QSet<QString> addedSet;
+
+    // Prioritize popular programming/monospace families
+    static const QStringList candidates = {
+        "SF Mono", "Menlo", "Monaco", "Courier New", "Consolas",
+        "JetBrains Mono", "Cascadia Code", "Fira Code", "Source Code Pro", "Inconsolata"
+    };
+    for (const QString &c : candidates) {
+        for (const QString &f : allFamilies) {
+            if (f.compare(c, Qt::CaseInsensitive) == 0 && !addedSet.contains(f)) {
+                m_fontFamilyList->addItem("TT  " + f);
+                addedSet.insert(f);
+                break;
+            }
+        }
+    }
+    for (const QString &family : allFamilies) {
+        if (db.isFixedPitch(family) && !addedSet.contains(family)) {
             m_fontFamilyList->addItem("TT  " + family);
+            addedSet.insert(family);
         }
     }
     if (m_fontFamilyList->count() == 0) {
-        m_fontFamilyList->addItems({"TT  Courier New", "TT  Consolas", "TT  Monaco", "TT  Menlo"});
+        m_fontFamilyList->addItems({"TT  SF Mono", "TT  Menlo", "TT  Monaco", "TT  Courier New"});
     }
+    m_fontFamilyList->sortItems();
     m_fontFamilyList->setCurrentRow(0);
     fVl->addWidget(m_fontFamilyList);
     listsHl->addLayout(fVl, 1);
@@ -450,6 +425,30 @@ QWidget* ProfileSettingsDialog::createFontPage() {
     listsHl->addLayout(sVl);
 
     vl->addLayout(listsHl, 1);
+
+    // GroupBox: Terminal buffer & input
+    QGroupBox *termGb = new QGroupBox("Terminal Buffer & Input", w);
+    QVBoxLayout *termVl = new QVBoxLayout(termGb);
+    termVl->setContentsMargins(8, 8, 8, 8);
+    termVl->setSpacing(5);
+
+    m_pasteOnRightClickCb = new QCheckBox("Paste on right mouse click", termGb);
+    termVl->addWidget(m_pasteOnRightClickCb);
+
+    m_scrollBottomOnOutputCb = new QCheckBox("Scroll bottom on output", termGb);
+    m_scrollBottomOnOutputCb->setChecked(true);
+    termVl->addWidget(m_scrollBottomOnOutputCb);
+
+    QHBoxLayout *sbHl = new QHBoxLayout();
+    sbHl->addWidget(new QLabel("Scrollback buffer:", termGb));
+    m_scrollbackEdit = new QLineEdit("1000", termGb);
+    m_scrollbackEdit->setFixedWidth(100);
+    sbHl->addWidget(m_scrollbackEdit);
+    sbHl->addWidget(new QLabel("lines", termGb));
+    sbHl->addStretch();
+    termVl->addLayout(sbHl);
+
+    vl->addWidget(termGb);
     return w;
 }
 
@@ -564,29 +563,41 @@ QWidget* ProfileSettingsDialog::createColorsPage() {
 }
 
 QColor ProfileSettingsDialog::colorNameToQColor(const QString &name) {
-    if (name == "Black") return Qt::black;
-    if (name == "White") return Qt::white;
-    if (name == "Gray") return QColor(112, 112, 112);
-    if (name == "Blue") return Qt::blue;
-    if (name == "Aqua") return QColor(0, 255, 255);
-    if (name == "Red") return Qt::red;
-    if (name == "Green") return Qt::green;
-    if (name == "Yellow") return Qt::yellow;
-    if (name == "Magenta") return Qt::magenta;
-    return Qt::black;
+    QString trimmed = name.trimmed();
+    if (trimmed.isEmpty()) return Qt::white;
+
+    if (trimmed.startsWith("#")) {
+        QColor hexColor(trimmed);
+        if (hexColor.isValid()) return hexColor;
+    }
+
+    if (trimmed.compare("Black", Qt::CaseInsensitive) == 0) return Qt::black;
+    if (trimmed.compare("White", Qt::CaseInsensitive) == 0) return Qt::white;
+    if (trimmed.compare("Gray", Qt::CaseInsensitive) == 0 || trimmed.compare("Grey", Qt::CaseInsensitive) == 0) return QColor(112, 112, 112);
+    if (trimmed.compare("Blue", Qt::CaseInsensitive) == 0) return Qt::blue;
+    if (trimmed.compare("Aqua", Qt::CaseInsensitive) == 0 || trimmed.compare("Cyan", Qt::CaseInsensitive) == 0) return QColor(0, 255, 255);
+    if (trimmed.compare("Red", Qt::CaseInsensitive) == 0) return Qt::red;
+    if (trimmed.compare("Green", Qt::CaseInsensitive) == 0) return Qt::green;
+    if (trimmed.compare("Yellow", Qt::CaseInsensitive) == 0) return Qt::yellow;
+    if (trimmed.compare("Magenta", Qt::CaseInsensitive) == 0) return Qt::magenta;
+
+    QColor genericColor(trimmed);
+    if (genericColor.isValid()) return genericColor;
+
+    return Qt::white;
 }
 
 QString ProfileSettingsDialog::qcolorToColorName(const QColor &c) {
-    if (c == Qt::black) return "Black";
-    if (c == Qt::white) return "White";
+    if (c == Qt::black || c == QColor(0x1F, 0x23, 0x28)) return "Black";
+    if (c == Qt::white || c == QColor(0xFA, 0xFB, 0xFC)) return "White";
     if (c == QColor(112, 112, 112) || c == Qt::gray) return "Gray";
-    if (c == Qt::blue) return "Blue";
-    if (c == QColor(0, 255, 255) || c == Qt::cyan) return "Aqua";
+    if (c == Qt::blue || c == QColor(0x09, 0x69, 0xDA)) return "Blue";
+    if (c == QColor(0, 255, 255) || c == Qt::cyan || c == QColor(0xB6, 0xD7, 0xFF)) return "Aqua";
     if (c == Qt::red) return "Red";
     if (c == Qt::green) return "Green";
     if (c == Qt::yellow) return "Yellow";
     if (c == Qt::magenta) return "Magenta";
-    return "Black";
+    return c.name(QColor::HexRgb).toUpper();
 }
 
 QColor ProfileSettingsDialog::getForegroundColor() const {
@@ -655,6 +666,9 @@ SshConnectionParams ProfileSettingsDialog::getParams() const {
     if (m_authList->count() > 0) {
         p.authMethod = m_authList->item(0)->text();
     }
+    if (m_keepAliveCb) {
+        p.keepAlive = m_keepAliveCb->isChecked();
+    }
     return p;
 }
 
@@ -662,10 +676,16 @@ void ProfileSettingsDialog::setParams(const SshConnectionParams &params) {
     m_hostEdit->setText(params.host);
     m_userEdit->setText(params.username);
     m_portEdit->setText(QString::number(params.port));
+    if (m_keepAliveCb) {
+        m_keepAliveCb->setChecked(params.keepAlive);
+    }
 }
 
 void ProfileSettingsDialog::setProfileData(const ProfileData &data) {
     setParams(data.params);
+    if (m_keepAliveCb) {
+        m_keepAliveCb->setChecked(data.keepAlive);
+    }
 
     // Font family
     QString targetFamily = data.fontFamily;
@@ -673,23 +693,36 @@ void ProfileSettingsDialog::setProfileData(const ProfileData &data) {
         targetFamily = targetFamily.mid(4);
     }
     if (m_fontFamilyList) {
+        bool found = false;
         for (int i = 0; i < m_fontFamilyList->count(); ++i) {
             QString itemText = m_fontFamilyList->item(i)->text();
-            if (itemText == targetFamily || itemText == ("TT  " + targetFamily) || itemText.endsWith(targetFamily)) {
+            QString cleanItem = itemText.startsWith("TT  ") ? itemText.mid(4) : itemText;
+            if (cleanItem.compare(targetFamily, Qt::CaseInsensitive) == 0) {
                 m_fontFamilyList->setCurrentRow(i);
+                found = true;
                 break;
             }
+        }
+        if (!found && !targetFamily.isEmpty()) {
+            m_fontFamilyList->addItem("TT  " + targetFamily);
+            m_fontFamilyList->setCurrentRow(m_fontFamilyList->count() - 1);
         }
     }
 
     // Font size
     if (m_fontSizeList) {
         QString sizeStr = QString::number(data.fontSize);
+        bool found = false;
         for (int i = 0; i < m_fontSizeList->count(); ++i) {
             if (m_fontSizeList->item(i)->text() == sizeStr) {
                 m_fontSizeList->setCurrentRow(i);
+                found = true;
                 break;
             }
+        }
+        if (!found && data.fontSize > 0) {
+            m_fontSizeList->addItem(sizeStr);
+            m_fontSizeList->setCurrentRow(m_fontSizeList->count() - 1);
         }
     }
 
@@ -733,5 +766,9 @@ ProfileData ProfileSettingsDialog::getProfileData() const {
     if (m_cursorColorCombo) p.cursorColor = m_cursorColorCombo->currentText();
     p.enableAnsiColors = getEnableAnsiColors();
     p.reverseVideo = getReverseVideo();
+    if (m_keepAliveCb) {
+        p.keepAlive = m_keepAliveCb->isChecked();
+        p.params.keepAlive = p.keepAlive;
+    }
     return p;
 }

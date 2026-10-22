@@ -139,14 +139,14 @@ void TerminalWidget::setTerminalFont(const QString &family, int pointSize) {
     m_fontFamily = actualFamily;
     m_fontSize = pointSize;
 
-    QFont termFont(actualFamily, pointSize);
-    termFont.setStyleHint(QFont::Monospace);
-    termFont.setFixedPitch(true);
-    termFont.setKerning(false);
-    termFont.setLetterSpacing(QFont::AbsoluteSpacing, 0);
-    setFont(termFont);
+    m_terminalFont = QFont(actualFamily, pointSize);
+    m_terminalFont.setStyleHint(QFont::Monospace);
+    m_terminalFont.setFixedPitch(true);
+    m_terminalFont.setKerning(false);
+    m_terminalFont.setLetterSpacing(QFont::AbsoluteSpacing, 0);
+    setFont(m_terminalFont);
 
-    QFontMetrics fm(termFont);
+    QFontMetrics fm(m_terminalFont);
     m_charWidth = qMax(1, fm.averageCharWidth());
     m_charHeight = qMax(1, fm.lineSpacing());
 
@@ -175,10 +175,14 @@ void TerminalWidget::resetToDefaultBanner() {
         "Vintage SSH Workflow with Modern Security.\n\n"
         "Press Enter or Space to Quick Connect, or choose a Profile from the toolbar.\n\n";
 
+    QColor baseBg = m_reverseVideo ? m_defaultFg : m_defaultBg;
+    QColor baseFg = m_reverseVideo ? m_defaultBg : m_defaultFg;
+
     m_currentFg = QColor(87, 96, 106);
-    m_currentBg = QColor(0xFA, 0xFB, 0xFC);
+    m_currentBg = baseBg;
     parseAnsi(banner);
-    m_currentFg = m_defaultFg;
+    m_currentFg = baseFg;
+    m_currentBg = baseBg;
 }
 
 void TerminalWidget::setTerminalColors(const QColor &fg, const QColor &bg, const QColor &sel,
@@ -193,7 +197,11 @@ void TerminalWidget::setTerminalColors(const QColor &fg, const QColor &bg, const
     m_currentFg = m_reverseVideo ? m_defaultBg : m_defaultFg;
     m_currentBg = m_reverseVideo ? m_defaultFg : m_defaultBg;
 
-    update();
+    if (m_showingBanner) {
+        resetToDefaultBanner();
+    } else {
+        update();
+    }
 }
 
 void TerminalWidget::resetTerminal() {
@@ -733,8 +741,8 @@ void TerminalWidget::paintEvent(QPaintEvent *) {
     p.setPen(QColor(0xD0, 0xD7, 0xDE));
     p.drawRect(0, 0, width() - 1, height() - 1);
 
-    p.setFont(font());
-    QFontMetrics fm(font());
+    p.setFont(m_terminalFont);
+    QFontMetrics fm(m_terminalFont);
     int ascent = fm.ascent();
 
     int totalLines = qMax(m_buffer.size(), m_cursorRow + 1);

@@ -14,6 +14,7 @@ struct SshConnectionParams {
     QString password;
     QString privateKeyPath;
     QString authMethod = "Password";
+    bool keepAlive = true;
 };
 
 Q_DECLARE_METATYPE(SshConnectionParams)
@@ -31,7 +32,8 @@ public:
 
     // Start connection in background thread
     void startConnection(const QString &host, int port, const QString &username,
-                         const QString &password, const QString &authMethod);
+                         const QString &password, const QString &authMethod,
+                         bool keepAlive = true);
 
     // Thread-safe methods callable from GUI thread directly
     void sendData(const QByteArray &data);

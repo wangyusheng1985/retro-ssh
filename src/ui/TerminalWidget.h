@@ -112,6 +112,7 @@ private:
     int m_charHeight = 15;
     QString m_fontFamily = "Courier New";
     int m_fontSize = 10;
+    QFont m_terminalFont;
 
     // Scrollback buffer and view offset
     int m_maxScrollback = 1000;

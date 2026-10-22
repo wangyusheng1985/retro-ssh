@@ -3,8 +3,13 @@
 QWidget {
     background-color: #F6F8FA;
     color: #1F2328;
-    font-family: "SF Pro Text", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    font-family: -apple-system, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
     font-size: 11px;
+}
+
+TerminalWidget {
+    background: transparent;
+    font: none;
 }
 
 QMainWindow {

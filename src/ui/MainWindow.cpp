@@ -123,16 +123,10 @@ int MainWindow::createNewSessionTab(const QString &title, const SshConnectionPar
         g.reverseVideo
     );
 
-    // Apply saved profile specific appearance/colors if available
+    // Apply saved profile specific appearance/colors if available for explicit profiles
     QString lookupName = title.isEmpty() ? params.host : title;
-    if (lookupName.isEmpty() && ProfileManager::instance().hasProfile("default")) {
-        lookupName = "default";
-    }
-    if (ProfileManager::instance().hasProfile(lookupName)) {
+    if (!lookupName.isEmpty() && ProfileManager::instance().hasProfile(lookupName)) {
         ProfileData p = ProfileManager::instance().getProfile(lookupName);
-        if (!p.fontFamily.isEmpty()) {
-            s.terminal->setTerminalFont(p.fontFamily, p.fontSize);
-        }
         s.terminal->setMaxScrollback(p.scrollbackBuffer);
         s.terminal->setScrollOnOutput(p.scrollOnOutput);
         s.terminal->setPasteOnRightClick(p.pasteOnRightClick);
@@ -185,7 +179,7 @@ int MainWindow::createNewSessionTab(const QString &title, const SshConnectionPar
         createNewSessionTab("", m_currentParams);
     });
     connect(term, &TerminalWidget::newFileTransferRequested, this, &MainWindow::onSftpTriggered);
-    connect(term, &TerminalWidget::quickConnectRequested, this, &MainWindow::onQuickConnectTriggered);
+    connect(term, &TerminalWidget::quickConnectRequested, this, &MainWindow::onConnectTriggered);
     connect(term, &TerminalWidget::closeWindowRequested, this, &QWidget::close);
     connect(term, &TerminalWidget::settingsRequested, this, &MainWindow::onSettingsTriggered);
     connect(term, &TerminalWidget::uploadClipboardImageRequested, this, [this]() {
@@ -346,9 +340,6 @@ void MainWindow::setupMenus() {
 
     // File Menu
     QMenu *fileMenu = mb->addMenu("&File");
-    fileMenu->addAction(QIcon(":/icons/save.svg"), "&Save Settings", this, &MainWindow::onSaveSettingsTriggered, QKeySequence("Ctrl+S"));
-    fileMenu->addSeparator();
-
     fileMenu->addAction(QIcon(":/icons/quick_connect.svg"), "&Quick Connect...", this, &MainWindow::onQuickConnectTriggered);
 
     m_profilesMenu = fileMenu->addMenu("&Profiles");
@@ -462,9 +453,6 @@ void MainWindow::setupToolBars() {
     m_tier1 = addToolBar("Standard");
     m_tier1->setMovable(false);
     m_tier1->setIconSize(QSize(18, 18));
-
-    m_tier1->addAction(QIcon(":/icons/save.svg"), "Save Settings", this, &MainWindow::onSaveSettingsTriggered);
-    m_tier1->addSeparator();
 
     m_tier1->addAction(m_connectAct);
     m_tier1->addAction(m_disconnectAct);
@@ -584,7 +572,8 @@ void MainWindow::connectSession(int tabIndex) {
     m_statusLabel->setText(QString("Connecting to %1 (%2)...").arg(s.title, s.params.host));
     s.worker->startConnection(s.params.host, s.params.port,
                               s.params.username, s.params.password,
-                              s.params.authMethod);
+                              s.params.authMethod,
+                              s.params.keepAlive);
 }
 
 void MainWindow::onAddProfileTriggered() {
@@ -600,6 +589,19 @@ void MainWindow::onAddProfileTriggered() {
                 p.params.port = 22;
                 p.params.authMethod = "<Profile Settings>";
             }
+            GlobalAppearanceSettings g = ProfileManager::instance().getGlobalAppearance();
+            p.fontFamily = g.fontFamily;
+            p.fontSize = g.fontSize;
+            p.fgColor = g.fgColor;
+            p.bgColor = g.bgColor;
+            p.selColor = g.selColor;
+            p.cursorColor = g.cursorColor;
+            p.scrollbackBuffer = g.scrollbackBuffer;
+            p.scrollOnOutput = g.scrollOnOutput;
+            p.pasteOnRightClick = g.pasteOnRightClick;
+            p.enableAnsiColors = g.enableAnsiColors;
+            p.reverseVideo = g.reverseVideo;
+
             ProfileManager::instance().addOrUpdateProfile(p);
             rebuildProfilesMenu();
             m_statusLabel->setText(QString("Profile '%1' added.").arg(name));
@@ -753,7 +755,6 @@ void MainWindow::onSaveSettingsTriggered() {
     rebuildProfilesMenu();
 
     m_statusLabel->setText(QString("Configuration for profile '%1' saved.").arg(profileName));
-    QMessageBox::information(this, "Save Settings", QString("All settings for profile '%1' (font, colors, appearance, connection) have been saved.").arg(profileName));
 }
 
 void MainWindow::onSettingsTriggered() {
@@ -803,8 +804,9 @@ void MainWindow::onSettingsTriggered() {
         ProfileManager::instance().saveGlobalAppearance(g);
 
         // If the current session is associated with a saved profile, synchronize and persist that profile
-        if (s && !s->title.isEmpty() && ProfileManager::instance().hasProfile(s->title)) {
-            ProfileData prof = ProfileManager::instance().getProfile(s->title);
+        QString targetProfile = (s && !s->title.isEmpty()) ? s->title : (ProfileManager::instance().hasProfile("default") ? "default" : "");
+        if (!targetProfile.isEmpty() && ProfileManager::instance().hasProfile(targetProfile)) {
+            ProfileData prof = ProfileManager::instance().getProfile(targetProfile);
             prof.fontFamily = updated.fontFamily;
             prof.fontSize = updated.fontSize;
             prof.scrollbackBuffer = updated.scrollbackBuffer;
@@ -840,6 +842,8 @@ void MainWindow::onSettingsTriggered() {
         if (s) {
             s->params = m_currentParams;
         }
+
+        m_statusLabel->setText("Settings applied and saved.");
     }
 }
 

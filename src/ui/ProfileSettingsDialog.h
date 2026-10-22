@@ -43,8 +43,8 @@ private:
     QWidget* createAuthenticationPage();
     QWidget* createCipherPage();
     QWidget* createFontPage();
-    QWidget* createAppearancePage();
     QWidget* createColorsPage();
+    QWidget* createMessagesPage();
 
     QComboBox* createColorComboBox(const QStringList &colors, const QString &defaultColor, QWidget *parent);
 
@@ -57,23 +57,17 @@ private:
     QLineEdit *m_portEdit = nullptr;
     QComboBox *m_encryptionCombo = nullptr;
     QComboBox *m_macCombo = nullptr;
+    QCheckBox *m_keepAliveCb = nullptr;
 
     // Auth widgets
     QListWidget *m_authList = nullptr;
 
-    // Font widgets
+    // Font & Terminal widgets
     QListWidget *m_fontFamilyList = nullptr;
     QListWidget *m_fontSizeList = nullptr;
-
-    // Appearance widgets (Screenshot 1:1)
-    QCheckBox *m_officeXpCb = nullptr;
-    QCheckBox *m_showAddProfileCb = nullptr;
     QCheckBox *m_pasteOnRightClickCb = nullptr;
     QCheckBox *m_scrollBottomOnOutputCb = nullptr;
     QLineEdit *m_scrollbackEdit = nullptr;
-    QCheckBox *m_dispProfileNameCb = nullptr;
-    QCheckBox *m_dispHostNameCb = nullptr;
-    QCheckBox *m_openAllWindowsCb = nullptr;
 
     // Colors widgets (Screenshot 1:1)
     QComboBox *m_fgColorCombo = nullptr;
@@ -83,6 +77,12 @@ private:
     QComboBox *m_cursorColorCombo = nullptr;
     QCheckBox *m_enableAnsiCb = nullptr;
     QCheckBox *m_reverseVideoCb = nullptr;
+
+    // Messages widgets
+    QCheckBox *m_confirmDisconnectCb = nullptr;
+    QCheckBox *m_confirmExitCb = nullptr;
+    QCheckBox *m_showStatusBarMsgCb = nullptr;
+    QCheckBox *m_showErrorDialogsCb = nullptr;
 
     // Cipher widgets
     QListWidget *m_cipherList = nullptr;

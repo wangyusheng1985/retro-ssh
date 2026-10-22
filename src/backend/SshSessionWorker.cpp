@@ -2,6 +2,7 @@
 #include <QDebug>
 #include <QDir>
 #include <QFile>
+#include <chrono>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -50,7 +51,8 @@ SshSessionWorker::~SshSessionWorker() {
 }
 
 void SshSessionWorker::startConnection(const QString &host, int port, const QString &username,
-                                       const QString &password, const QString &authMethod) {
+                                       const QString &password, const QString &authMethod,
+                                       bool keepAlive) {
     if (isRunning()) {
         disconnectFromServer();
         wait(500);
@@ -61,6 +63,7 @@ void SshSessionWorker::startConnection(const QString &host, int port, const QStr
     m_params.username = username;
     m_params.password = password;
     m_params.authMethod = authMethod;
+    m_params.keepAlive = keepAlive;
 
     m_stopRequested = false;
     start(); // Launch run() in background thread
@@ -140,6 +143,19 @@ void SshSessionWorker::run() {
     // Disable Nagle's algorithm (TCP_NODELAY) for ultra-low interactive latency
     int one = 1;
     setsockopt(m_socket, IPPROTO_TCP, TCP_NODELAY, (const char*)&one, sizeof(one));
+
+    // Enable TCP keepalive if requested
+    if (m_params.keepAlive) {
+        int keepAliveOpt = 1;
+        setsockopt(m_socket, SOL_SOCKET, SO_KEEPALIVE, (const char*)&keepAliveOpt, sizeof(keepAliveOpt));
+#if defined(TCP_KEEPIDLE)
+        int idle = 30; // seconds before sending probes
+        setsockopt(m_socket, IPPROTO_TCP, TCP_KEEPIDLE, (const char*)&idle, sizeof(idle));
+#elif defined(TCP_KEEPALIVE) // macOS
+        int idle = 30;
+        setsockopt(m_socket, IPPROTO_TCP, TCP_KEEPALIVE, (const char*)&idle, sizeof(idle));
+#endif
+    }
 
     // Set connection timeout (5 seconds)
     struct timeval tv;
@@ -355,9 +371,19 @@ void SshSessionWorker::disconnectFromServer() {
 }
 
 void SshSessionWorker::runIoLoop() {
+    // Clear SO_RCVTIMEO and SO_SNDTIMEO so non-blocking poll controls timing
+    struct timeval tvZero{};
+    setsockopt(m_socket, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tvZero, sizeof tvZero);
+    setsockopt(m_socket, SOL_SOCKET, SO_SNDTIMEO, (const char*)&tvZero, sizeof tvZero);
+
     {
         QMutexLocker locker(&m_sshMutex);
-        if (m_session) libssh2_session_set_blocking(m_session, 0);
+        if (m_session) {
+            libssh2_session_set_blocking(m_session, 0);
+            if (m_params.keepAlive) {
+                libssh2_keepalive_config(m_session, 1, 30);
+            }
+        }
     }
 
     char buffer[16384];
@@ -366,6 +392,8 @@ void SshSessionWorker::runIoLoop() {
     pfds[0].events = POLLIN;
     pfds[1].fd = m_wakePipe[0];
     pfds[1].events = POLLIN;
+
+    auto lastKeepaliveTime = std::chrono::steady_clock::now();
 
     while (!m_stopRequested && m_connected && m_channel) {
         // 1. Flush any pending outbound data queued by sendData()
@@ -393,9 +421,12 @@ void SshSessionWorker::runIoLoop() {
                     m_outgoingQueue.prepend(chunkToSend.mid(sent));
                     break;
                 } else {
+                    // Fatal write error (e.g. broken pipe / socket disconnect)
+                    m_connected = false;
                     break;
                 }
             }
+            if (!m_connected) break;
         }
 
         // 2. Poll socket for incoming packets AND wakePipe for instant input notifications
@@ -405,6 +436,12 @@ void SshSessionWorker::runIoLoop() {
             if (pfds[1].revents & POLLIN) {
                 char dummy[64];
                 while (::read(m_wakePipe[0], dummy, sizeof(dummy)) > 0) {}
+            }
+
+            // Socket error or peer disconnected
+            if (pfds[0].revents & (POLLHUP | POLLERR | POLLNVAL)) {
+                m_connected = false;
+                break;
             }
 
             // Read SSH channel if data arrived
@@ -422,25 +459,38 @@ void SshSessionWorker::runIoLoop() {
                     } else if (bytes == LIBSSH2_ERROR_EAGAIN) {
                         break;
                     } else {
-                        bool isEof = false;
-                        {
-                            QMutexLocker locker(&m_sshMutex);
-                            if (m_channel) isEof = (libssh2_channel_eof(m_channel) != 0);
-                        }
-                        if (isEof) {
-                            m_connected = false;
-                        }
+                        // bytes == 0 (EOF) or negative error code (socket closed/error)
+                        m_connected = false;
                         break;
                     }
                 }
+                if (!m_connected) break;
             }
         } else if (pollRes < 0) {
             if (errno == EINTR) continue;
+            m_connected = false;
             break;
+        }
+
+        // 3. Periodic Keepalive probe (every 30 seconds)
+        if (m_params.keepAlive && m_connected && m_session) {
+            auto now = std::chrono::steady_clock::now();
+            if (std::chrono::duration_cast<std::chrono::seconds>(now - lastKeepaliveTime).count() >= 30) {
+                lastKeepaliveTime = now;
+                int secondsToNext = 0;
+                int kaRc = 0;
+                {
+                    QMutexLocker locker(&m_sshMutex);
+                    if (m_session) kaRc = libssh2_keepalive_send(m_session, &secondsToNext);
+                }
+                if (kaRc < 0 && kaRc != LIBSSH2_ERROR_EAGAIN) {
+                    m_connected = false;
+                    break;
+                }
+            }
         }
     }
 
-    if (m_connected) {
-        disconnectFromServer();
-    }
+    // Always clean up resources and notify UI when the I/O loop finishes
+    disconnectFromServer();
 }
