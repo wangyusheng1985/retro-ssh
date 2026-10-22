@@ -121,18 +121,6 @@ public:
             }
         }
         s.endArray();
-
-        // Ensure default initial entry if empty
-        if (m_profiles.isEmpty()) {
-            ProfileData def;
-            def.name = "10.9.34.84";
-            def.params.host = "10.9.34.84";
-            def.params.username = "root";
-            def.params.port = 22;
-            def.params.authMethod = "Public Key";
-            m_profiles.insert(def.name, def);
-            saveProfiles();
-        }
     }
 
     void saveProfiles() {

@@ -152,7 +152,7 @@ void TerminalWidget::resetToDefaultBanner() {
         "RetroSSH Client 1.0 (Build 2026)\n"
         "Native High-Performance SSH2 / SFTP Client for macOS\n\n"
         "Powered by modern OpenSSL 3.x & libssh2 Cryptography Engine.\n"
-        "Authentic Clean-Room Win32 Desktop Experience.\n\n"
+        "Vintage SSH Workflow with Modern Security.\n\n"
         "Press Enter or Space to Quick Connect, or choose a Profile from the toolbar.\n\n";
 
     m_currentFg = QColor(60, 60, 60);

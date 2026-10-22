@@ -247,11 +247,13 @@ QWidget* ProfileSettingsDialog::createConnectionPage() {
     g->setVerticalSpacing(5);
 
     g->addWidget(new QLabel("Host name:", w), 0, 0);
-    m_hostEdit = new QLineEdit("10.9.34.84", w);
+    m_hostEdit = new QLineEdit(w);
+    m_hostEdit->setPlaceholderText("e.g. 192.168.1.1 or example.com");
     g->addWidget(m_hostEdit, 0, 1, 1, 2);
 
     g->addWidget(new QLabel("User name:", w), 1, 0);
-    m_userEdit = new QLineEdit("root", w);
+    m_userEdit = new QLineEdit(w);
+    m_userEdit->setPlaceholderText("e.g. root");
     g->addWidget(m_userEdit, 1, 1, 1, 2);
 
     g->addWidget(new QLabel("Port", w), 2, 0);

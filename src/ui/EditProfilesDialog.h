@@ -212,10 +212,12 @@ private:
 
         g->addWidget(new QLabel("Host name:", w), 0, 0);
         m_hostEdit = new QLineEdit(w);
+        m_hostEdit->setPlaceholderText("e.g. 192.168.1.1 or example.com");
         g->addWidget(m_hostEdit, 0, 1, 1, 2);
 
         g->addWidget(new QLabel("User name:", w), 1, 0);
         m_userEdit = new QLineEdit(w);
+        m_userEdit->setPlaceholderText("e.g. root");
         g->addWidget(m_userEdit, 1, 1, 1, 2);
 
         g->addWidget(new QLabel("Port", w), 2, 0);
@@ -362,8 +364,8 @@ private:
         if (!current) return;
         m_currentProfileKey = current->data(0, Qt::UserRole).toString();
         if (m_currentProfileKey.startsWith("__")) {
-            m_hostEdit->setText("10.9.34.84");
-            m_userEdit->setText("root");
+            m_hostEdit->clear();
+            m_userEdit->clear();
             m_portEdit->setText("22");
         } else {
             loadProfileData(m_currentProfileKey);

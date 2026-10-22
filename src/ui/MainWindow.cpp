@@ -38,10 +38,10 @@ MainWindow::MainWindow(QWidget *parent)
     setupStatusBar();
 
     // Default connection parameters
-    m_currentParams.host = "10.9.34.84";
+    m_currentParams.host = "";
     m_currentParams.port = 22;
-    m_currentParams.username = "root";
-    m_currentParams.authMethod = "Public Key";
+    m_currentParams.username = "";
+    m_currentParams.authMethod = "<Profile Settings>";
 
     // Show blank initial terminal without adding any tabs to ProfileBar
     createNewSessionTab("", m_currentParams);
@@ -592,10 +592,8 @@ void MainWindow::onAddProfileTriggered() {
             p.name = name;
             p.params = m_currentParams;
             if (p.params.host.isEmpty()) {
-                p.params.host = "10.9.34.84";
-                p.params.username = "root";
                 p.params.port = 22;
-                p.params.authMethod = "Public Key";
+                p.params.authMethod = "<Profile Settings>";
             }
             ProfileManager::instance().addOrUpdateProfile(p);
             rebuildProfilesMenu();
@@ -849,10 +847,8 @@ void MainWindow::onSftpTriggered() {
         // Fallback to default or remembered params if no session is connected
         params = m_currentParams;
         if (params.host.isEmpty()) {
-            params.host = "10.9.34.84";
-            params.username = "root";
-            params.port = 22;
-            params.authMethod = "Public Key";
+            QMessageBox::information(this, "SFTP File Transfer", "No active connection. Please connect to a server first or use Quick Connect.");
+            return;
         }
         remotePath = (params.username == "root") ? "/root" : ("/home/" + params.username);
     }

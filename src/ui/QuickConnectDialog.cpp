@@ -30,11 +30,13 @@ QuickConnectDialog::QuickConnectDialog(QWidget *parent)
     grid->setVerticalSpacing(6);
 
     grid->addWidget(new QLabel("Host Name:", this), 0, 0);
-    m_hostEdit = new QLineEdit("10.9.34.84", this);
+    m_hostEdit = new QLineEdit(this);
+    m_hostEdit->setPlaceholderText("e.g. 192.168.1.1 or example.com");
     grid->addWidget(m_hostEdit, 0, 1);
 
     grid->addWidget(new QLabel("User Name:", this), 1, 0);
-    m_userEdit = new QLineEdit("root", this);
+    m_userEdit = new QLineEdit(this);
+    m_userEdit->setPlaceholderText("e.g. root");
     grid->addWidget(m_userEdit, 1, 1);
 
     grid->addWidget(new QLabel("Port Number:", this), 2, 0);
