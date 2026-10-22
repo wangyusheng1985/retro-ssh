@@ -19,9 +19,15 @@
 #include <QToolBar>
 #include <QVBoxLayout>
 #include <QtConcurrent/QtConcurrent>
+
+#ifdef Q_OS_WIN
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#else
 #include <netdb.h>
 #include <sys/socket.h>
 #include <unistd.h>
+#endif
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
     setWindowTitle("RetroSSH");
@@ -1044,7 +1050,11 @@ void MainWindow::uploadClipboardImage(SessionTabInfo *s) {
                 } else {
                     errorMsg = "SFTP connect failed";
                 }
+#ifdef Q_OS_WIN
+                closesocket(sock);
+#else
                 ::close(sock);
+#endif
             }
             freeaddrinfo(res);
         }

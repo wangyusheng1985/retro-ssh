@@ -2,8 +2,14 @@
 #include <QDebug>
 #include <QDir>
 #include <QFile>
-#include <arpa/inet.h>
 #include <chrono>
+
+#ifdef Q_OS_WIN
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#define poll WSAPoll
+#else
+#include <arpa/inet.h>
 #include <fcntl.h>
 #include <netdb.h>
 #include <netinet/in.h>
@@ -12,6 +18,7 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <unistd.h>
+#endif
 
 static SshSessionWorker *s_activeWorker = nullptr;
 
@@ -34,15 +41,18 @@ static void kbd_callback(const char *name, int name_len, const char *instruction
 
 SshSessionWorker::SshSessionWorker(QObject *parent) : QThread(parent) {
     libssh2_init(0);
+#ifndef Q_OS_WIN
     if (::pipe(m_wakePipe) == 0) {
         fcntl(m_wakePipe[0], F_SETFL, O_NONBLOCK);
         fcntl(m_wakePipe[1], F_SETFL, O_NONBLOCK);
     }
+#endif
 }
 
 SshSessionWorker::~SshSessionWorker() {
     disconnectFromServer();
     wait(1000);
+#ifndef Q_OS_WIN
     if (m_wakePipe[0] >= 0) {
         ::close(m_wakePipe[0]);
         m_wakePipe[0] = -1;
@@ -51,6 +61,7 @@ SshSessionWorker::~SshSessionWorker() {
         ::close(m_wakePipe[1]);
         m_wakePipe[1] = -1;
     }
+#endif
     libssh2_exit();
 }
 
@@ -163,7 +174,11 @@ void SshSessionWorker::run() {
 
     if (::connect(m_socket, res->ai_addr, res->ai_addrlen) != 0) {
         freeaddrinfo(res);
+#ifdef Q_OS_WIN
+        closesocket(m_socket);
+#else
         ::close(m_socket);
+#endif
         m_socket = -1;
         emit connectionError("Connection refused or timed out connecting to " + m_params.host);
         return;
@@ -178,7 +193,11 @@ void SshSessionWorker::run() {
     }
 
     if (!m_session) {
+#ifdef Q_OS_WIN
+        closesocket(m_socket);
+#else
         ::close(m_socket);
+#endif
         m_socket = -1;
         emit connectionError("Failed to initialize libssh2 session.");
         return;
@@ -354,7 +373,11 @@ void SshSessionWorker::disconnectFromServer() {
     }
 
     if (m_socket >= 0) {
+#ifdef Q_OS_WIN
+        closesocket(m_socket);
+#else
         ::close(m_socket);
+#endif
         m_socket = -1;
     }
 
@@ -387,8 +410,15 @@ void SshSessionWorker::runIoLoop() {
     struct pollfd pfds[2];
     pfds[0].fd = m_socket;
     pfds[0].events = POLLIN;
-    pfds[1].fd = m_wakePipe[0];
-    pfds[1].events = POLLIN;
+
+    int nfds = 1;
+#ifndef Q_OS_WIN
+    if (m_wakePipe[0] >= 0) {
+        pfds[1].fd = m_wakePipe[0];
+        pfds[1].events = POLLIN;
+        nfds = 2;
+    }
+#endif
 
     auto lastKeepaliveTime = std::chrono::steady_clock::now();
 
@@ -428,14 +458,16 @@ void SshSessionWorker::runIoLoop() {
         }
 
         // 2. Poll socket for incoming packets AND wakePipe for instant input notifications
-        int pollRes = poll(pfds, 2, 50);
+        int pollRes = poll(pfds, nfds, 50);
         if (pollRes > 0) {
+#ifndef Q_OS_WIN
             // Drain wake pipe if triggered
-            if (pfds[1].revents & POLLIN) {
+            if (nfds > 1 && (pfds[1].revents & POLLIN)) {
                 char dummy[64];
                 while (::read(m_wakePipe[0], dummy, sizeof(dummy)) > 0) {
                 }
             }
+#endif
 
             // Socket error or peer disconnected
             if (pfds[0].revents & (POLLHUP | POLLERR | POLLNVAL)) {

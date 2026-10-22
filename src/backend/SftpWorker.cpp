@@ -2,8 +2,6 @@
 #include <QDebug>
 #include <QDir>
 #include <QFile>
-#include <fcntl.h>
-#include <unistd.h>
 
 SftpWorker::SftpWorker(QObject *parent) : QObject(parent) {}
 

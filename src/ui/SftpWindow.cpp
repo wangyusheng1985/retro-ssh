@@ -12,9 +12,14 @@
 #include <QStatusBar>
 #include <QToolBar>
 #include <QVBoxLayout>
+#ifdef Q_OS_WIN
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#else
 #include <netdb.h>
 #include <sys/socket.h>
 #include <unistd.h>
+#endif
 
 SftpWindow::SftpWindow(const SshConnectionParams &params, const QString &initialRemotePath, QWidget *parent)
     : QMainWindow(parent), m_currentRemotePath(initialRemotePath) {
@@ -120,7 +125,11 @@ SftpWindow::~SftpWindow() {
         m_session = nullptr;
     }
     if (m_socket >= 0) {
+#ifdef Q_OS_WIN
+        closesocket(m_socket);
+#else
         ::close(m_socket);
+#endif
         m_socket = -1;
     }
 }
