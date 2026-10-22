@@ -10,6 +10,10 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  HOMEBREW_NO_AUTO_UPDATE: 1
+  HOMEBREW_NO_INSTALL_CLEANUP: 1
+
 jobs:
   lint:
     name: Lint & Code Style
@@ -29,14 +33,12 @@ jobs:
   test-and-coverage:
     name: Test & 90% Coverage Gate
     runs-on: macos-14
-    needs: [lint]
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Install dependencies
         run: |
-          brew update || true
           brew install qt@5 libssh2 openssl@3 lcov
 
       - name: Configure CMake with Coverage
@@ -61,7 +63,6 @@ jobs:
 
   build-matrix:
     name: Build (${{ matrix.os }} - ${{ matrix.arch }})
-    needs: [lint]
     strategy:
       fail-fast: false
       matrix:
@@ -85,7 +86,6 @@ jobs:
       - name: Install macOS Dependencies
         if: runner.os == 'macOS'
         run: |
-          brew update || true
           brew install qt@5 libssh2 openssl@3
 
       - name: Configure & Build on macOS

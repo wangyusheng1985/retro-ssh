@@ -7,9 +7,8 @@ if ! command -v clang-format &> /dev/null; then
     exit 1
 fi
 
-echo "=== Running clang-format check on C++ sources ==="
+echo "=== Running clang-format check on C++ sources (clang-format $(clang-format --version)) ==="
 
-# 收集所有源码和头文件
 FILES=$(find src tests -type f \( -name "*.cpp" -o -name "*.h" \) 2>/dev/null || true)
 
 if [ -z "$FILES" ]; then
@@ -17,11 +16,12 @@ if [ -z "$FILES" ]; then
     exit 0
 fi
 
-# 运行干跑格式化检查
 FAILED=0
 for f in $FILES; do
-    if ! clang-format --dry-run --Werror "$f" 2>&1; then
-        echo "FAIL: $f does not conform to .clang-format"
+    DIFF=$(clang-format "$f" | diff -u "$f" - || true)
+    if [ -n "$DIFF" ]; then
+        echo "FAIL: $f does not conform to .clang-format:"
+        echo "$DIFF"
         FAILED=1
     fi
 done
