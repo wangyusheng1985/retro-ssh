@@ -1,19 +1,19 @@
 #include "SftpWindow.h"
-#include <QVBoxLayout>
-#include <QHBoxLayout>
-#include <QSplitter>
-#include <QToolBar>
-#include <QMenuBar>
-#include <QStatusBar>
-#include <QHeaderView>
 #include <QDir>
-#include <QMessageBox>
-#include <QPushButton>
+#include <QHBoxLayout>
+#include <QHeaderView>
+#include <QInputDialog>
 #include <QLineEdit>
 #include <QMenu>
-#include <QInputDialog>
-#include <sys/socket.h>
+#include <QMenuBar>
+#include <QMessageBox>
+#include <QPushButton>
+#include <QSplitter>
+#include <QStatusBar>
+#include <QToolBar>
+#include <QVBoxLayout>
 #include <netdb.h>
+#include <sys/socket.h>
 #include <unistd.h>
 
 SftpWindow::SftpWindow(const SshConnectionParams &params, const QString &initialRemotePath, QWidget *parent)
@@ -34,8 +34,8 @@ SftpWindow::SftpWindow(const SshConnectionParams &params, const QString &initial
         m_socket = ::socket(res->ai_family, res->ai_socktype, res->ai_protocol);
         if (m_socket >= 0) {
             struct timeval tv{3, 0};
-            setsockopt(m_socket, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv);
-            setsockopt(m_socket, SOL_SOCKET, SO_SNDTIMEO, (const char*)&tv, sizeof tv);
+            setsockopt(m_socket, SOL_SOCKET, SO_RCVTIMEO, (const char *)&tv, sizeof tv);
+            setsockopt(m_socket, SOL_SOCKET, SO_SNDTIMEO, (const char *)&tv, sizeof tv);
 
             if (::connect(m_socket, res->ai_addr, res->ai_addrlen) == 0) {
                 m_session = libssh2_session_init();
@@ -48,24 +48,27 @@ SftpWindow::SftpWindow(const SshConnectionParams &params, const QString &initial
                     QString privKey = params.privateKeyPath;
                     if (privKey.isEmpty()) {
                         QString home = QDir::homePath();
-                        for (const QString &c : {home + "/.ssh/id_rsa", home + "/.ssh/id_ed25519", home + "/.ssh/id_ecdsa"}) {
-                            if (QFile::exists(c)) { privKey = c; break; }
+                        for (const QString &c :
+                             {home + "/.ssh/id_rsa", home + "/.ssh/id_ed25519", home + "/.ssh/id_ecdsa"}) {
+                            if (QFile::exists(c)) {
+                                privKey = c;
+                                break;
+                            }
                         }
                     }
 
                     if (!privKey.isEmpty() && QFile::exists(privKey)) {
                         QString pubKey = privKey + ".pub";
                         authOk = (libssh2_userauth_publickey_fromfile(
-                            m_session,
-                            userBytes.constData(),
-                            QFile::exists(pubKey) ? pubKey.toUtf8().constData() : nullptr,
-                            privKey.toUtf8().constData(),
-                            passBytes.isEmpty() ? nullptr : passBytes.constData()
-                        ) == 0);
+                                      m_session, userBytes.constData(),
+                                      QFile::exists(pubKey) ? pubKey.toUtf8().constData() : nullptr,
+                                      privKey.toUtf8().constData(),
+                                      passBytes.isEmpty() ? nullptr : passBytes.constData()) == 0);
                     }
 
                     if (!authOk && !passBytes.isEmpty()) {
-                        authOk = (libssh2_userauth_password(m_session, userBytes.constData(), passBytes.constData()) == 0);
+                        authOk =
+                            (libssh2_userauth_password(m_session, userBytes.constData(), passBytes.constData()) == 0);
                     }
 
                     if (authOk) {
@@ -86,9 +89,8 @@ SftpWindow::SftpWindow(const SshConnectionParams &params, const QString &initial
         connect(m_worker, &SftpWorker::dirListed, this, &SftpWindow::onRemoteDirListed);
         connect(m_worker, &SftpWorker::transferProgress, this, &SftpWindow::onTransferProgress);
         connect(m_worker, &SftpWorker::transferFinished, this, &SftpWindow::onTransferFinished);
-        connect(m_worker, &SftpWorker::sftpError, this, [this](const QString &err) {
-            m_statusLabel->setText("Error: " + err);
-        });
+        connect(m_worker, &SftpWorker::sftpError, this,
+                [this](const QString &err) { m_statusLabel->setText("Error: " + err); });
     }
 
     setupMenus();
@@ -168,7 +170,7 @@ void SftpWindow::setupToolBars() {
     connect(upAct, &QAction::triggered, this, &SftpWindow::onUploadClicked);
 }
 
-QWidget* SftpWindow::createPaneHeader(bool isLocal) {
+QWidget *SftpWindow::createPaneHeader(bool isLocal) {
     QWidget *header = new QWidget(this);
     QHBoxLayout *hl = new QHBoxLayout(header);
     hl->setContentsMargins(4, 2, 4, 2);
@@ -185,15 +187,13 @@ QWidget* SftpWindow::createPaneHeader(bool isLocal) {
     if (isLocal) {
         m_localCombo = combo;
         m_localCombo->addItem(m_currentLocalPath);
-        connect(m_localCombo->lineEdit(), &QLineEdit::returnPressed, this, [this]() {
-            navigateLocal(m_localCombo->currentText());
-        });
+        connect(m_localCombo->lineEdit(), &QLineEdit::returnPressed, this,
+                [this]() { navigateLocal(m_localCombo->currentText()); });
     } else {
         m_remoteCombo = combo;
         m_remoteCombo->addItem(m_currentRemotePath);
-        connect(m_remoteCombo->lineEdit(), &QLineEdit::returnPressed, this, [this]() {
-            navigateRemote(m_remoteCombo->currentText());
-        });
+        connect(m_remoteCombo->lineEdit(), &QLineEdit::returnPressed, this,
+                [this]() { navigateRemote(m_remoteCombo->currentText()); });
     }
     hl->addWidget(combo, 1);
 
@@ -320,13 +320,15 @@ void SftpWindow::setupUi() {
 void SftpWindow::navigateLocal(const QString &path) {
     if (QDir(path).exists()) {
         m_currentLocalPath = QDir(path).absolutePath();
-        if (m_localCombo) m_localCombo->setEditText(m_currentLocalPath);
+        if (m_localCombo)
+            m_localCombo->setEditText(m_currentLocalPath);
         m_localTree->setRootIndex(m_localModel->index(m_currentLocalPath));
     }
 }
 
 void SftpWindow::onLocalItemDoubleClicked(const QModelIndex &index) {
-    if (!index.isValid()) return;
+    if (!index.isValid())
+        return;
     QString path = m_localModel->filePath(index);
     if (QFileInfo(path).isDir()) {
         navigateLocal(path);
@@ -334,7 +336,8 @@ void SftpWindow::onLocalItemDoubleClicked(const QModelIndex &index) {
 }
 
 void SftpWindow::addQueueItem(const QString &local, const QString &remote, const QString &op) {
-    if (!m_queueTable) return;
+    if (!m_queueTable)
+        return;
     int r = m_queueTable->rowCount();
     m_queueTable->insertRow(r);
     m_queueTable->setItem(r, 0, new QTableWidgetItem(local));
@@ -345,7 +348,8 @@ void SftpWindow::addQueueItem(const QString &local, const QString &remote, const
 }
 
 void SftpWindow::updateQueueItem(const QString &file, const QString &status) {
-    if (!m_queueTable) return;
+    if (!m_queueTable)
+        return;
     for (int r = 0; r < m_queueTable->rowCount(); ++r) {
         auto *it0 = m_queueTable->item(r, 0);
         auto *it1 = m_queueTable->item(r, 1);
@@ -357,7 +361,8 @@ void SftpWindow::updateQueueItem(const QString &file, const QString &status) {
 }
 
 void SftpWindow::appendLogText(const QString &text) {
-    if (!m_transferLog) return;
+    if (!m_transferLog)
+        return;
     QString timestamp = QDateTime::currentDateTime().toString("[yyyy-MM-dd hh:mm:ss] ");
     m_transferLog->append(timestamp + text);
 }
@@ -372,31 +377,30 @@ void SftpWindow::onLocalContextMenu(const QPoint &pos) {
 
         if (fi.isDir()) {
             QAction *openAct = menu.addAction(QString("Open '%1'").arg(fi.fileName()));
-            connect(openAct, &QAction::triggered, this, [this, localPath]() {
-                navigateLocal(localPath);
-            });
+            connect(openAct, &QAction::triggered, this, [this, localPath]() { navigateLocal(localPath); });
 
-            QAction *upDirAct = menu.addAction(QIcon(":/icons/save.svg"), QString("Upload Directory '%1' to Remote").arg(fi.fileName()));
+            QAction *upDirAct = menu.addAction(QIcon(":/icons/save.svg"),
+                                               QString("Upload Directory '%1' to Remote").arg(fi.fileName()));
             connect(upDirAct, &QAction::triggered, this, [this, localPath, fi]() {
                 addQueueItem(localPath, m_currentRemotePath + "/" + fi.fileName(), "Upload Dir");
                 m_statusLabel->setText("Uploading directory " + fi.fileName() + "...");
                 if (m_worker) {
                     QMetaObject::invokeMethod(m_worker, "uploadDirectory", Qt::QueuedConnection,
-                                              Q_ARG(QString, localPath),
-                                              Q_ARG(QString, m_currentRemotePath));
+                                              Q_ARG(QString, localPath), Q_ARG(QString, m_currentRemotePath));
                 }
             });
         } else {
-            QAction *uploadAct = menu.addAction(QIcon(":/icons/save.svg"), QString("Upload '%1' to Remote").arg(fi.fileName()));
+            QAction *uploadAct =
+                menu.addAction(QIcon(":/icons/save.svg"), QString("Upload '%1' to Remote").arg(fi.fileName()));
             connect(uploadAct, &QAction::triggered, this, [this, localPath, fi]() {
                 QString remotePath = m_currentRemotePath;
-                if (!remotePath.endsWith('/')) remotePath += '/';
+                if (!remotePath.endsWith('/'))
+                    remotePath += '/';
                 remotePath += fi.fileName();
                 addQueueItem(localPath, remotePath, "Upload");
                 m_statusLabel->setText("Uploading " + fi.fileName() + "...");
                 if (m_worker) {
-                    QMetaObject::invokeMethod(m_worker, "uploadFile", Qt::QueuedConnection,
-                                              Q_ARG(QString, localPath),
+                    QMetaObject::invokeMethod(m_worker, "uploadFile", Qt::QueuedConnection, Q_ARG(QString, localPath),
                                               Q_ARG(QString, remotePath));
                 }
             });
@@ -406,7 +410,8 @@ void SftpWindow::onLocalContextMenu(const QPoint &pos) {
 
         QAction *deleteAct = menu.addAction("Delete");
         connect(deleteAct, &QAction::triggered, this, [this, localPath, fi]() {
-            auto ans = QMessageBox::question(this, "Delete", QString("Are you sure you want to delete '%1'?").arg(fi.fileName()));
+            auto ans = QMessageBox::question(this, "Delete",
+                                             QString("Are you sure you want to delete '%1'?").arg(fi.fileName()));
             if (ans == QMessageBox::Yes) {
                 if (fi.isDir()) {
                     QDir(localPath).removeRecursively();
@@ -433,16 +438,15 @@ void SftpWindow::onLocalContextMenu(const QPoint &pos) {
     QAction *newFolderAct = menu.addAction("New Folder...");
     connect(newFolderAct, &QAction::triggered, this, [this]() {
         bool ok = false;
-        QString folderName = QInputDialog::getText(this, "New Folder", "Folder name:", QLineEdit::Normal, "New Folder", &ok);
+        QString folderName =
+            QInputDialog::getText(this, "New Folder", "Folder name:", QLineEdit::Normal, "New Folder", &ok);
         if (ok && !folderName.isEmpty()) {
             QDir(m_currentLocalPath).mkdir(folderName);
         }
     });
 
     QAction *refreshAct = menu.addAction("Refresh");
-    connect(refreshAct, &QAction::triggered, this, [this]() {
-        navigateLocal(m_currentLocalPath);
-    });
+    connect(refreshAct, &QAction::triggered, this, [this]() { navigateLocal(m_currentLocalPath); });
 
     menu.exec(m_localTree->viewport()->mapToGlobal(pos));
 }
@@ -455,23 +459,22 @@ void SftpWindow::onRemoteContextMenu(const QPoint &pos) {
         bool isDir = item->data(0, Qt::UserRole).toBool();
         QString filename = item->text(0);
         QString remotePath = m_currentRemotePath;
-        if (!remotePath.endsWith('/')) remotePath += '/';
+        if (!remotePath.endsWith('/'))
+            remotePath += '/';
         remotePath += filename;
 
         if (isDir) {
             QAction *openAct = menu.addAction(QString("Open '%1'").arg(filename));
-            connect(openAct, &QAction::triggered, this, [this, remotePath]() {
-                navigateRemote(remotePath);
-            });
+            connect(openAct, &QAction::triggered, this, [this, remotePath]() { navigateRemote(remotePath); });
 
-            QAction *dlDirAct = menu.addAction(QIcon(":/icons/save.svg"), QString("Download Directory '%1' to Local").arg(filename));
+            QAction *dlDirAct =
+                menu.addAction(QIcon(":/icons/save.svg"), QString("Download Directory '%1' to Local").arg(filename));
             connect(dlDirAct, &QAction::triggered, this, [this, remotePath, filename]() {
                 addQueueItem(m_currentLocalPath + "/" + filename, remotePath, "Download Dir");
                 m_statusLabel->setText("Downloading directory " + filename + "...");
                 if (m_worker) {
                     QMetaObject::invokeMethod(m_worker, "downloadDirectory", Qt::QueuedConnection,
-                                              Q_ARG(QString, remotePath),
-                                              Q_ARG(QString, m_currentLocalPath));
+                                              Q_ARG(QString, remotePath), Q_ARG(QString, m_currentLocalPath));
                 }
             });
         } else {
@@ -482,8 +485,7 @@ void SftpWindow::onRemoteContextMenu(const QPoint &pos) {
                 m_statusLabel->setText("Downloading " + filename + "...");
                 if (m_worker) {
                     QMetaObject::invokeMethod(m_worker, "downloadFile", Qt::QueuedConnection,
-                                              Q_ARG(QString, remotePath),
-                                              Q_ARG(QString, localPath));
+                                              Q_ARG(QString, remotePath), Q_ARG(QString, localPath));
                 }
             });
         }
@@ -492,12 +494,15 @@ void SftpWindow::onRemoteContextMenu(const QPoint &pos) {
 
         QAction *deleteAct = menu.addAction("Delete");
         connect(deleteAct, &QAction::triggered, this, [this, filename, remotePath, isDir]() {
-            auto ans = QMessageBox::question(this, "Delete Remote", QString("Are you sure you want to delete '%1' on remote?").arg(filename));
+            auto ans = QMessageBox::question(this, "Delete Remote",
+                                             QString("Are you sure you want to delete '%1' on remote?").arg(filename));
             if (ans == QMessageBox::Yes && m_worker) {
                 if (isDir) {
-                    QMetaObject::invokeMethod(m_worker, "deleteRemoteDir", Qt::QueuedConnection, Q_ARG(QString, remotePath));
+                    QMetaObject::invokeMethod(m_worker, "deleteRemoteDir", Qt::QueuedConnection,
+                                              Q_ARG(QString, remotePath));
                 } else {
-                    QMetaObject::invokeMethod(m_worker, "deleteRemoteFile", Qt::QueuedConnection, Q_ARG(QString, remotePath));
+                    QMetaObject::invokeMethod(m_worker, "deleteRemoteFile", Qt::QueuedConnection,
+                                              Q_ARG(QString, remotePath));
                 }
                 navigateRemote(m_currentRemotePath);
             }
@@ -506,13 +511,14 @@ void SftpWindow::onRemoteContextMenu(const QPoint &pos) {
         QAction *renameAct = menu.addAction("Rename...");
         connect(renameAct, &QAction::triggered, this, [this, filename, remotePath]() {
             bool ok = false;
-            QString newName = QInputDialog::getText(this, "Rename Remote", "New name:", QLineEdit::Normal, filename, &ok);
+            QString newName =
+                QInputDialog::getText(this, "Rename Remote", "New name:", QLineEdit::Normal, filename, &ok);
             if (ok && !newName.isEmpty() && newName != filename && m_worker) {
                 QString newRemotePath = m_currentRemotePath;
-                if (!newRemotePath.endsWith('/')) newRemotePath += '/';
+                if (!newRemotePath.endsWith('/'))
+                    newRemotePath += '/';
                 newRemotePath += newName;
-                QMetaObject::invokeMethod(m_worker, "renameRemote", Qt::QueuedConnection,
-                                          Q_ARG(QString, remotePath),
+                QMetaObject::invokeMethod(m_worker, "renameRemote", Qt::QueuedConnection, Q_ARG(QString, remotePath),
                                           Q_ARG(QString, newRemotePath));
                 navigateRemote(m_currentRemotePath);
             }
@@ -524,10 +530,12 @@ void SftpWindow::onRemoteContextMenu(const QPoint &pos) {
     QAction *newFolderAct = menu.addAction("New Folder...");
     connect(newFolderAct, &QAction::triggered, this, [this]() {
         bool ok = false;
-        QString folderName = QInputDialog::getText(this, "New Remote Folder", "Folder name:", QLineEdit::Normal, "new_folder", &ok);
+        QString folderName =
+            QInputDialog::getText(this, "New Remote Folder", "Folder name:", QLineEdit::Normal, "new_folder", &ok);
         if (ok && !folderName.isEmpty() && m_worker) {
             QString newPath = m_currentRemotePath;
-            if (!newPath.endsWith('/')) newPath += '/';
+            if (!newPath.endsWith('/'))
+                newPath += '/';
             newPath += folderName;
             QMetaObject::invokeMethod(m_worker, "createRemoteDir", Qt::QueuedConnection, Q_ARG(QString, newPath));
             navigateRemote(m_currentRemotePath);
@@ -535,16 +543,15 @@ void SftpWindow::onRemoteContextMenu(const QPoint &pos) {
     });
 
     QAction *refreshAct = menu.addAction("Refresh");
-    connect(refreshAct, &QAction::triggered, this, [this]() {
-        navigateRemote(m_currentRemotePath);
-    });
+    connect(refreshAct, &QAction::triggered, this, [this]() { navigateRemote(m_currentRemotePath); });
 
     menu.exec(m_remoteTree->viewport()->mapToGlobal(pos));
 }
 
 void SftpWindow::navigateRemote(const QString &path) {
     m_currentRemotePath = path;
-    if (m_remoteCombo) m_remoteCombo->setEditText(path);
+    if (m_remoteCombo)
+        m_remoteCombo->setEditText(path);
     m_statusLabel->setText("Listing " + path + "...");
     if (m_worker) {
         QMetaObject::invokeMethod(m_worker, "listRemoteDir", Qt::QueuedConnection, Q_ARG(QString, path));
@@ -569,14 +576,16 @@ void SftpWindow::onRemoteDirListed(const QString &path, const QList<RemoteFileIn
 }
 
 void SftpWindow::onRemoteItemDoubleClicked(QTreeWidgetItem *item, int) {
-    if (!item) return;
+    if (!item)
+        return;
 
     bool isDir = item->data(0, Qt::UserRole).toBool();
     QString name = item->text(0);
 
     if (isDir) {
         QString nextPath = m_currentRemotePath;
-        if (!nextPath.endsWith('/')) nextPath += '/';
+        if (!nextPath.endsWith('/'))
+            nextPath += '/';
         nextPath += name;
         navigateRemote(nextPath);
     }
@@ -593,19 +602,18 @@ void SftpWindow::onUploadClicked() {
     bool isDir = QFileInfo(localPath).isDir();
     QString filename = QFileInfo(localPath).fileName();
     QString remotePath = m_currentRemotePath;
-    if (!remotePath.endsWith('/')) remotePath += '/';
+    if (!remotePath.endsWith('/'))
+        remotePath += '/';
     remotePath += filename;
 
     addQueueItem(localPath, remotePath, isDir ? "Upload Dir" : "Upload");
     m_statusLabel->setText(QString("Uploading %1...").arg(filename));
     if (m_worker) {
         if (isDir) {
-            QMetaObject::invokeMethod(m_worker, "uploadDirectory", Qt::QueuedConnection,
-                                      Q_ARG(QString, localPath),
+            QMetaObject::invokeMethod(m_worker, "uploadDirectory", Qt::QueuedConnection, Q_ARG(QString, localPath),
                                       Q_ARG(QString, m_currentRemotePath));
         } else {
-            QMetaObject::invokeMethod(m_worker, "uploadFile", Qt::QueuedConnection,
-                                      Q_ARG(QString, localPath),
+            QMetaObject::invokeMethod(m_worker, "uploadFile", Qt::QueuedConnection, Q_ARG(QString, localPath),
                                       Q_ARG(QString, remotePath));
         }
     }
@@ -621,7 +629,8 @@ void SftpWindow::onDownloadClicked() {
     bool isDir = item->data(0, Qt::UserRole).toBool();
     QString filename = item->text(0);
     QString remotePath = m_currentRemotePath;
-    if (!remotePath.endsWith('/')) remotePath += '/';
+    if (!remotePath.endsWith('/'))
+        remotePath += '/';
     remotePath += filename;
 
     QString localPath = m_currentLocalPath + "/" + filename;
@@ -629,12 +638,10 @@ void SftpWindow::onDownloadClicked() {
     m_statusLabel->setText(QString("Downloading %1...").arg(filename));
     if (m_worker) {
         if (isDir) {
-            QMetaObject::invokeMethod(m_worker, "downloadDirectory", Qt::QueuedConnection,
-                                      Q_ARG(QString, remotePath),
+            QMetaObject::invokeMethod(m_worker, "downloadDirectory", Qt::QueuedConnection, Q_ARG(QString, remotePath),
                                       Q_ARG(QString, m_currentLocalPath));
         } else {
-            QMetaObject::invokeMethod(m_worker, "downloadFile", Qt::QueuedConnection,
-                                      Q_ARG(QString, remotePath),
+            QMetaObject::invokeMethod(m_worker, "downloadFile", Qt::QueuedConnection, Q_ARG(QString, remotePath),
                                       Q_ARG(QString, localPath));
         }
     }

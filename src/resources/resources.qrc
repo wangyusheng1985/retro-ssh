@@ -2,6 +2,7 @@
     <qresource prefix="/">
         <file>classic_win32.qss</file>
         <file>icons/app_icon.svg</file>
+        <file>icons/app_icon.png</file>
         <file>icons/quick_connect.svg</file>
         <file>icons/connect.svg</file>
         <file>icons/disconnect.svg</file>

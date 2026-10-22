@@ -1,11 +1,11 @@
 #pragma once
 
-#include <QWidget>
+#include <QColor>
+#include <QScrollBar>
 #include <QTextCodec>
 #include <QTimer>
-#include <QScrollBar>
-#include <QColor>
 #include <QVector>
+#include <QWidget>
 
 struct AnsiChar {
     QChar ch;
@@ -29,8 +29,8 @@ public:
     void setScrollOnOutput(bool enable) { m_scrollOnOutput = enable; }
     void setPasteOnRightClick(bool enable) { m_pasteOnRightClick = enable; }
 
-    void setTerminalColors(const QColor &fg, const QColor &bg, const QColor &sel,
-                           const QColor &cursor, bool enableAnsi, bool reverseVideo);
+    void setTerminalColors(const QColor &fg, const QColor &bg, const QColor &sel, const QColor &cursor, bool enableAnsi,
+                           bool reverseVideo);
 
     QString fontFamily() const { return m_fontFamily; }
     int fontSize() const { return m_fontSize; }
@@ -46,7 +46,8 @@ public:
     bool reverseVideo() const { return m_reverseVideo; }
 
     bool hasSelection() const { return m_selectStart != m_selectEnd && m_selectStart.x() >= 0; }
-    bool findText(const QString &text, bool matchCase = false, bool matchWord = false, bool isRegex = false, bool searchUp = true);
+    bool findText(const QString &text, bool matchCase = false, bool matchWord = false, bool isRegex = false,
+                  bool searchUp = true);
 
     void setEncoding(const QString &encodingName);
     void clearScreen(bool keepBanner = false);
@@ -157,6 +158,7 @@ private:
 
     // Find state
     class FindDialog *m_findDialog = nullptr;
+    QString m_lastSearchText;
     int m_lastFoundRow = -1;
     int m_lastFoundCol = -1;
 

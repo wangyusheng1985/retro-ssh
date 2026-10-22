@@ -1,19 +1,18 @@
 #pragma once
 
-#include <QDialog>
-#include <QLineEdit>
-#include <QPushButton>
 #include <QCheckBox>
-#include <QRadioButton>
+#include <QDialog>
 #include <QGroupBox>
 #include <QHBoxLayout>
-#include <QVBoxLayout>
 #include <QLabel>
+#include <QLineEdit>
+#include <QPushButton>
+#include <QRadioButton>
+#include <QVBoxLayout>
 
 class FindDialog : public QDialog {
 public:
-    explicit FindDialog(QWidget *parent = nullptr)
-        : QDialog(parent) {
+    explicit FindDialog(QWidget *parent = nullptr) : QDialog(parent) {
         setWindowTitle("Find");
         resize(420, 150);
         setWindowFlags(windowFlags() & ~Qt::WindowContextHelpButtonHint);
@@ -93,9 +92,7 @@ public:
         rootHl->addLayout(btnVl);
     }
 
-    void setOnFindNext(const std::function<void()> &callback) {
-        m_onFindNext = callback;
-    }
+    void setOnFindNext(const std::function<void()> &callback) { m_onFindNext = callback; }
 
     QString findWhat() const { return m_findEdit->text(); }
     void setFindWhat(const QString &text) {

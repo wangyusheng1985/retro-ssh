@@ -1,30 +1,29 @@
 #include "MainWindow.h"
+#include "backend/ProfileManager.h"
 #include "ui/AddProfileDialog.h"
 #include "ui/EditProfilesDialog.h"
-#include "backend/ProfileManager.h"
-#include <QMenuBar>
-#include <QToolBar>
-#include <QStatusBar>
-#include <QMessageBox>
+#include <QApplication>
+#include <QClipboard>
+#include <QDateTime>
 #include <QFrame>
-#include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QIcon>
-#include <QApplication>
+#include <QImage>
+#include <QMenuBar>
+#include <QMessageBox>
+#include <QMimeData>
 #include <QScrollBar>
 #include <QShortcut>
-#include <QClipboard>
-#include <QMimeData>
-#include <QImage>
+#include <QStatusBar>
 #include <QTemporaryFile>
-#include <QDateTime>
+#include <QToolBar>
+#include <QVBoxLayout>
 #include <QtConcurrent/QtConcurrent>
-#include <sys/socket.h>
 #include <netdb.h>
+#include <sys/socket.h>
 #include <unistd.h>
 
-MainWindow::MainWindow(QWidget *parent)
-    : QMainWindow(parent) {
+MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent) {
     setWindowTitle("RetroSSH");
     setWindowIcon(QIcon(":/icons/app_icon.svg"));
     resize(860, 580);
@@ -69,9 +68,10 @@ MainWindow::~MainWindow() {
     }
 }
 
-SessionTabInfo* MainWindow::currentSession() {
+SessionTabInfo *MainWindow::currentSession() {
     QWidget *curr = m_sessionStack ? m_sessionStack->currentWidget() : nullptr;
-    if (!curr) return nullptr;
+    if (!curr)
+        return nullptr;
     for (int i = 0; i < m_sessions.size(); ++i) {
         if (m_sessions[i].containerWidget == curr) {
             return &m_sessions[i];
@@ -115,13 +115,9 @@ int MainWindow::createNewSessionTab(const QString &title, const SshConnectionPar
     s.terminal->setScrollOnOutput(g.scrollOnOutput);
     s.terminal->setPasteOnRightClick(g.pasteOnRightClick);
     s.terminal->setTerminalColors(
-        ProfileSettingsDialog::colorNameToQColor(g.fgColor),
-        ProfileSettingsDialog::colorNameToQColor(g.bgColor),
-        ProfileSettingsDialog::colorNameToQColor(g.selColor),
-        ProfileSettingsDialog::colorNameToQColor(g.cursorColor),
-        g.enableAnsiColors,
-        g.reverseVideo
-    );
+        ProfileSettingsDialog::colorNameToQColor(g.fgColor), ProfileSettingsDialog::colorNameToQColor(g.bgColor),
+        ProfileSettingsDialog::colorNameToQColor(g.selColor), ProfileSettingsDialog::colorNameToQColor(g.cursorColor),
+        g.enableAnsiColors, g.reverseVideo);
 
     // Apply saved profile specific appearance/colors if available for explicit profiles
     QString lookupName = title.isEmpty() ? params.host : title;
@@ -131,13 +127,9 @@ int MainWindow::createNewSessionTab(const QString &title, const SshConnectionPar
         s.terminal->setScrollOnOutput(p.scrollOnOutput);
         s.terminal->setPasteOnRightClick(p.pasteOnRightClick);
         s.terminal->setTerminalColors(
-            ProfileSettingsDialog::colorNameToQColor(p.fgColor),
-            ProfileSettingsDialog::colorNameToQColor(p.bgColor),
+            ProfileSettingsDialog::colorNameToQColor(p.fgColor), ProfileSettingsDialog::colorNameToQColor(p.bgColor),
             ProfileSettingsDialog::colorNameToQColor(p.selColor),
-            ProfileSettingsDialog::colorNameToQColor(p.cursorColor),
-            p.enableAnsiColors,
-            p.reverseVideo
-        );
+            ProfileSettingsDialog::colorNameToQColor(p.cursorColor), p.enableAnsiColors, p.reverseVideo);
     }
 
     // Create worker for this session
@@ -175,16 +167,13 @@ int MainWindow::createNewSessionTab(const QString &title, const SshConnectionPar
         }
     });
 
-    connect(term, &TerminalWidget::newTerminalRequested, this, [this]() {
-        createNewSessionTab("", m_currentParams);
-    });
+    connect(term, &TerminalWidget::newTerminalRequested, this, [this]() { createNewSessionTab("", m_currentParams); });
     connect(term, &TerminalWidget::newFileTransferRequested, this, &MainWindow::onSftpTriggered);
     connect(term, &TerminalWidget::quickConnectRequested, this, &MainWindow::onConnectTriggered);
     connect(term, &TerminalWidget::closeWindowRequested, this, &QWidget::close);
     connect(term, &TerminalWidget::settingsRequested, this, &MainWindow::onSettingsTriggered);
-    connect(term, &TerminalWidget::uploadClipboardImageRequested, this, [this]() {
-        uploadClipboardImage(currentSession());
-    });
+    connect(term, &TerminalWidget::uploadClipboardImageRequested, this,
+            [this]() { uploadClipboardImage(currentSession()); });
     connect(term, &TerminalWidget::windowTitleChanged, this, [this, container](const QString &t) {
         if (m_sessionStack->currentWidget() == container) {
             setWindowTitle(QString("%1 - RetroSSH").arg(t));
@@ -197,9 +186,8 @@ int MainWindow::createNewSessionTab(const QString &title, const SshConnectionPar
         if (m_sessionStack->currentWidget() == container) {
             auto *s = currentSession();
             if (s) {
-                QString winTitle = s->title.isEmpty() ?
-                    QString("%1 - RetroSSH").arg(s->params.host) :
-                    QString("%1 - %2 - RetroSSH").arg(s->params.host, s->title);
+                QString winTitle = s->title.isEmpty() ? QString("%1 - RetroSSH").arg(s->params.host)
+                                                      : QString("%1 - %2 - RetroSSH").arg(s->params.host, s->title);
                 setWindowTitle(winTitle);
                 m_statusLabel->setText(QString("Connected to %1").arg(s->params.host));
                 m_emptyLabel->setText("Connected");
@@ -227,15 +215,15 @@ int MainWindow::createNewSessionTab(const QString &title, const SshConnectionPar
         QMessageBox::critical(this, "Connection Error", err);
     });
 
-    connect(worker, &SshSessionWorker::statusMessage, this, [this](const QString &msg) {
-        m_statusLabel->setText(msg);
-    });
+    connect(worker, &SshSessionWorker::statusMessage, this,
+            [this](const QString &msg) { m_statusLabel->setText(msg); });
 
     return newIndex;
 }
 
 void MainWindow::showDefaultStartingPage() {
-    if (m_sessions.isEmpty()) return;
+    if (m_sessions.isEmpty())
+        return;
 
     auto &def = m_sessions[0];
     m_sessionStack->setCurrentWidget(def.containerWidget);
@@ -260,8 +248,9 @@ void MainWindow::onCurrentTabChanged(int tabIndex) {
         return;
     }
 
-    QWidget *container = reinterpret_cast<QWidget*>(m_profileTabBar->tabData(tabIndex).value<quintptr>());
-    if (!container) return;
+    QWidget *container = reinterpret_cast<QWidget *>(m_profileTabBar->tabData(tabIndex).value<quintptr>());
+    if (!container)
+        return;
 
     int sessIdx = -1;
     for (int i = 0; i < m_sessions.size(); ++i) {
@@ -296,9 +285,10 @@ void MainWindow::onCurrentTabChanged(int tabIndex) {
 }
 
 void MainWindow::onTabCloseRequested(int tabIndex) {
-    if (tabIndex < 0 || !m_profileTabBar || tabIndex >= m_profileTabBar->count()) return;
+    if (tabIndex < 0 || !m_profileTabBar || tabIndex >= m_profileTabBar->count())
+        return;
 
-    QWidget *container = reinterpret_cast<QWidget*>(m_profileTabBar->tabData(tabIndex).value<quintptr>());
+    QWidget *container = reinterpret_cast<QWidget *>(m_profileTabBar->tabData(tabIndex).value<quintptr>());
 
     int sessIdx = -1;
     for (int i = 1; i < m_sessions.size(); ++i) { // i=0 is default session, tabs are i >= 1
@@ -340,15 +330,18 @@ void MainWindow::setupMenus() {
 
     // File Menu
     QMenu *fileMenu = mb->addMenu("&File");
-    fileMenu->addAction(QIcon(":/icons/quick_connect.svg"), "&Quick Connect...", this, &MainWindow::onQuickConnectTriggered);
+    fileMenu->addAction(QIcon(":/icons/quick_connect.svg"), "&Quick Connect...", this,
+                        &MainWindow::onQuickConnectTriggered);
 
     m_profilesMenu = fileMenu->addMenu("&Profiles");
     rebuildProfilesMenu();
 
     fileMenu->addSeparator();
 
-    m_connectAct = fileMenu->addAction(QIcon(":/icons/connect.svg"), "&Connect...", this, &MainWindow::onConnectTriggered);
-    m_disconnectAct = fileMenu->addAction(QIcon(":/icons/disconnect.svg"), "&Disconnect", this, &MainWindow::onDisconnectTriggered);
+    m_connectAct =
+        fileMenu->addAction(QIcon(":/icons/connect.svg"), "&Connect...", this, &MainWindow::onConnectTriggered);
+    m_disconnectAct =
+        fileMenu->addAction(QIcon(":/icons/disconnect.svg"), "&Disconnect", this, &MainWindow::onDisconnectTriggered);
     m_disconnectAct->setEnabled(false);
     fileMenu->addSeparator();
 
@@ -359,38 +352,57 @@ void MainWindow::setupMenus() {
 
     // Edit Menu
     QMenu *editMenu = mb->addMenu("&Edit");
-    QAction *copyAct = editMenu->addAction(QIcon(":/icons/copy.svg"), "&Copy\tCtrl+Insert", [this]() {
-        auto *s = currentSession();
-        if (s && s->terminal) s->terminal->copySelection();
-    }, QKeySequence::Copy);
-    editMenu->addAction(QIcon(":/icons/paste.svg"), "&Paste\tShift+Insert", [this]() {
-        auto *s = currentSession();
-        if (s && s->terminal) s->terminal->pasteClipboard();
-    }, QKeySequence::Paste);
+    QAction *copyAct = editMenu->addAction(
+        QIcon(":/icons/copy.svg"), "&Copy\tCtrl+Insert",
+        [this]() {
+            auto *s = currentSession();
+            if (s && s->terminal)
+                s->terminal->copySelection();
+        },
+        QKeySequence::Copy);
+    editMenu->addAction(
+        QIcon(":/icons/paste.svg"), "&Paste\tShift+Insert",
+        [this]() {
+            auto *s = currentSession();
+            if (s && s->terminal)
+                s->terminal->pasteClipboard();
+        },
+        QKeySequence::Paste);
     editMenu->addAction(QIcon(":/icons/paste.svg"), "Paste &Selection", [this]() {
         auto *s = currentSession();
-        if (s && s->terminal) s->terminal->pasteSelection();
+        if (s && s->terminal)
+            s->terminal->pasteSelection();
     });
     editMenu->addSeparator();
 
-    editMenu->addAction("Select &All", [this]() {
-        auto *s = currentSession();
-        if (s && s->terminal) s->terminal->selectAll();
-    }, QKeySequence("Ctrl+A"));
+    editMenu->addAction(
+        "Select &All",
+        [this]() {
+            auto *s = currentSession();
+            if (s && s->terminal)
+                s->terminal->selectAll();
+        },
+        QKeySequence("Ctrl+A"));
     editMenu->addAction("Select Sc&reen", [this]() {
         auto *s = currentSession();
-        if (s && s->terminal) s->terminal->selectScreen();
+        if (s && s->terminal)
+            s->terminal->selectScreen();
     });
     editMenu->addAction("Select &None", [this]() {
         auto *s = currentSession();
-        if (s && s->terminal) s->terminal->selectNone();
+        if (s && s->terminal)
+            s->terminal->selectNone();
     });
     editMenu->addSeparator();
 
-    editMenu->addAction(QIcon(":/icons/find.svg"), "&Find...", [this]() {
-        auto *s = currentSession();
-        if (s && s->terminal) s->terminal->showFindDialog();
-    }, QKeySequence("Ctrl+F"));
+    editMenu->addAction(
+        QIcon(":/icons/find.svg"), "&Find...",
+        [this]() {
+            auto *s = currentSession();
+            if (s && s->terminal)
+                s->terminal->showFindDialog();
+        },
+        QKeySequence("Ctrl+F"));
     editMenu->addSeparator();
 
     editMenu->addAction(QIcon(":/icons/settings.svg"), "&Settings...", this, &MainWindow::onSettingsTriggered);
@@ -406,33 +418,35 @@ void MainWindow::setupMenus() {
     tbAct->setCheckable(true);
     tbAct->setChecked(true);
     connect(tbAct, &QAction::toggled, this, [this](bool visible) {
-        if (m_tier1) m_tier1->setVisible(visible);
+        if (m_tier1)
+            m_tier1->setVisible(visible);
     });
 
     QAction *sbAct = viewMenu->addAction("&Status Bar");
     sbAct->setCheckable(true);
     sbAct->setChecked(true);
-    connect(sbAct, &QAction::toggled, this, [this](bool visible) {
-        statusBar()->setVisible(visible);
-    });
+    connect(sbAct, &QAction::toggled, this, [this](bool visible) { statusBar()->setVisible(visible); });
 
     QAction *pbAct = viewMenu->addAction("&Profiles Bar");
     pbAct->setCheckable(true);
     pbAct->setChecked(true);
     connect(pbAct, &QAction::toggled, this, [this](bool visible) {
-        if (m_tier2) m_tier2->setVisible(visible);
+        if (m_tier2)
+            m_tier2->setVisible(visible);
     });
 
     viewMenu->addSeparator();
 
     viewMenu->addAction("Reset &Terminal", [this]() {
         auto *s = currentSession();
-        if (s && s->terminal) s->terminal->resetTerminal();
+        if (s && s->terminal)
+            s->terminal->resetTerminal();
     });
 
     // Window Menu
     QMenu *windowMenu = mb->addMenu("&Window");
-    m_sftpAct = windowMenu->addAction(QIcon(":/icons/sftp.svg"), "New &File Transfer Window", this, &MainWindow::onSftpTriggered, QKeySequence("Ctrl+F"));
+    m_sftpAct = windowMenu->addAction(QIcon(":/icons/sftp.svg"), "New &File Transfer Window", this,
+                                      &MainWindow::onSftpTriggered, QKeySequence("Ctrl+F"));
 
     // Help Menu
     QMenu *helpMenu = mb->addMenu("&Help");
@@ -441,10 +455,10 @@ void MainWindow::setupMenus() {
     });
     helpMenu->addAction("&About RetroSSH...", [this]() {
         QMessageBox::about(this, "About RetroSSH",
-            "RetroSSH Client 1.0 (Build 2026)\n\n"
-            "An authentic classic SSH2 client with modern cryptographic engines.\n"
-            "Built with Qt C++, libssh2 and OpenSSL 3.x.\n\n"
-            "Fast, reliable and native on macOS.");
+                           "RetroSSH Client 1.0 (Build 2026)\n\n"
+                           "An authentic classic SSH2 client with modern cryptographic engines.\n"
+                           "Built with Qt C++, libssh2 and OpenSSL 3.x.\n\n"
+                           "Fast, reliable and native on macOS.");
     });
 }
 
@@ -461,15 +475,18 @@ void MainWindow::setupToolBars() {
 
     m_tier1->addAction(QIcon(":/icons/copy.svg"), "Copy", [this]() {
         auto *s = currentSession();
-        if (s && s->terminal) s->terminal->copySelection();
+        if (s && s->terminal)
+            s->terminal->copySelection();
     });
     m_tier1->addAction(QIcon(":/icons/paste.svg"), "Paste", [this]() {
         auto *s = currentSession();
-        if (s && s->terminal) s->terminal->pasteClipboard();
+        if (s && s->terminal)
+            s->terminal->pasteClipboard();
     });
     m_tier1->addAction(QIcon(":/icons/find.svg"), "Find", [this]() {
         auto *s = currentSession();
-        if (s && s->terminal) s->terminal->showFindDialog();
+        if (s && s->terminal)
+            s->terminal->showFindDialog();
     });
 
     m_tier1->addSeparator();
@@ -515,9 +532,7 @@ void MainWindow::setupToolBars() {
     m_profileTabBar->setDrawBase(false);
     m_profileTabBar->setTabsClosable(true);
     m_profileTabBar->setMovable(true);
-    m_profileTabBar->setStyleSheet(
-        "QTabBar::tab { height: 22px; padding: 2px 10px; margin-left: 2px; }"
-    );
+    m_profileTabBar->setStyleSheet("QTabBar::tab { height: 22px; padding: 2px 10px; margin-left: 2px; }");
     connect(m_profileTabBar, &QTabBar::currentChanged, this, &MainWindow::onCurrentTabChanged);
     connect(m_profileTabBar, &QTabBar::tabCloseRequested, this, &MainWindow::onTabCloseRequested);
     m_tier2->addWidget(m_profileTabBar);
@@ -546,7 +561,8 @@ void MainWindow::setupStatusBar() {
 }
 
 void MainWindow::rebuildProfilesMenu() {
-    if (!m_profilesMenu) return;
+    if (!m_profilesMenu)
+        return;
     m_profilesMenu->clear();
 
     m_profilesMenu->addAction("Add Profile...", this, &MainWindow::onAddProfileTriggered);
@@ -567,12 +583,11 @@ void MainWindow::rebuildProfilesMenu() {
 }
 
 void MainWindow::connectSession(int tabIndex) {
-    if (tabIndex < 0 || tabIndex >= m_sessions.size()) return;
+    if (tabIndex < 0 || tabIndex >= m_sessions.size())
+        return;
     auto &s = m_sessions[tabIndex];
     m_statusLabel->setText(QString("Connecting to %1 (%2)...").arg(s.title, s.params.host));
-    s.worker->startConnection(s.params.host, s.params.port,
-                              s.params.username, s.params.password,
-                              s.params.authMethod,
+    s.worker->startConnection(s.params.host, s.params.port, s.params.username, s.params.password, s.params.authMethod,
                               s.params.keepAlive);
 }
 
@@ -652,14 +667,11 @@ void MainWindow::onQuickConnectTriggered() {
                     s->terminal->setMaxScrollback(p.scrollbackBuffer);
                     s->terminal->setScrollOnOutput(p.scrollOnOutput);
                     s->terminal->setPasteOnRightClick(p.pasteOnRightClick);
-                    s->terminal->setTerminalColors(
-                        ProfileSettingsDialog::colorNameToQColor(p.fgColor),
-                        ProfileSettingsDialog::colorNameToQColor(p.bgColor),
-                        ProfileSettingsDialog::colorNameToQColor(p.selColor),
-                        ProfileSettingsDialog::colorNameToQColor(p.cursorColor),
-                        p.enableAnsiColors,
-                        p.reverseVideo
-                    );
+                    s->terminal->setTerminalColors(ProfileSettingsDialog::colorNameToQColor(p.fgColor),
+                                                   ProfileSettingsDialog::colorNameToQColor(p.bgColor),
+                                                   ProfileSettingsDialog::colorNameToQColor(p.selColor),
+                                                   ProfileSettingsDialog::colorNameToQColor(p.cursorColor),
+                                                   p.enableAnsiColors, p.reverseVideo);
                 }
             }
 
@@ -679,7 +691,8 @@ void MainWindow::onQuickConnectTriggered() {
 
 void MainWindow::onConnectTriggered() {
     auto *s = currentSession();
-    if (!s) return;
+    if (!s)
+        return;
 
     if (s->params.host.isEmpty()) {
         onQuickConnectTriggered();
@@ -707,7 +720,8 @@ void MainWindow::onDisconnectTriggered() {
 
 void MainWindow::onSaveSettingsTriggered() {
     auto *s = currentSession();
-    if (!s) return;
+    if (!s)
+        return;
 
     QString profileName = s->title;
     if (profileName.isEmpty()) {
@@ -761,7 +775,8 @@ void MainWindow::onSettingsTriggered() {
     ProfileSettingsDialog dlg(this);
     auto *s = currentSession();
     QString pName = s ? s->title : "";
-    if (pName.isEmpty() && s) pName = s->params.host;
+    if (pName.isEmpty() && s)
+        pName = s->params.host;
 
     ProfileData p;
     if (ProfileManager::instance().hasProfile(pName)) {
@@ -804,7 +819,8 @@ void MainWindow::onSettingsTriggered() {
         ProfileManager::instance().saveGlobalAppearance(g);
 
         // If the current session is associated with a saved profile, synchronize and persist that profile
-        QString targetProfile = (s && !s->title.isEmpty()) ? s->title : (ProfileManager::instance().hasProfile("default") ? "default" : "");
+        QString targetProfile =
+            (s && !s->title.isEmpty()) ? s->title : (ProfileManager::instance().hasProfile("default") ? "default" : "");
         if (!targetProfile.isEmpty() && ProfileManager::instance().hasProfile(targetProfile)) {
             ProfileData prof = ProfileManager::instance().getProfile(targetProfile);
             prof.fontFamily = updated.fontFamily;
@@ -828,14 +844,9 @@ void MainWindow::onSettingsTriggered() {
                 sess.terminal->setMaxScrollback(updated.scrollbackBuffer);
                 sess.terminal->setScrollOnOutput(updated.scrollOnOutput);
                 sess.terminal->setPasteOnRightClick(updated.pasteOnRightClick);
-                sess.terminal->setTerminalColors(
-                    dlg.getForegroundColor(),
-                    dlg.getBackgroundColor(),
-                    dlg.getSelectionColor(),
-                    dlg.getCursorColor(),
-                    updated.enableAnsiColors,
-                    updated.reverseVideo
-                );
+                sess.terminal->setTerminalColors(dlg.getForegroundColor(), dlg.getBackgroundColor(),
+                                                 dlg.getSelectionColor(), dlg.getCursorColor(),
+                                                 updated.enableAnsiColors, updated.reverseVideo);
             }
         }
 
@@ -873,7 +884,8 @@ void MainWindow::onSftpTriggered() {
         // Fallback to default or remembered params if no session is connected
         params = m_currentParams;
         if (params.host.isEmpty()) {
-            QMessageBox::information(this, "SFTP File Transfer", "No active connection. Please connect to a server first or use Quick Connect.");
+            QMessageBox::information(this, "SFTP File Transfer",
+                                     "No active connection. Please connect to a server first or use Quick Connect.");
             return;
         }
         remotePath = (params.username == "root") ? "/root" : ("/home/" + params.username);
@@ -897,12 +909,14 @@ void MainWindow::uploadClipboardImage(SessionTabInfo *s) {
 
     const QClipboard *clipboard = QApplication::clipboard();
     QImage img = clipboard->image();
-    if (img.isNull()) return;
+    if (img.isNull())
+        return;
 
     // Save image to temporary local PNG file
     QTemporaryFile tempFile(QDir::tempPath() + "/retro_ssh_clip_XXXXXX.png");
     tempFile.setAutoRemove(false);
-    if (!tempFile.open()) return;
+    if (!tempFile.open())
+        return;
     QString localPath = tempFile.fileName();
     tempFile.close();
 
@@ -938,8 +952,8 @@ void MainWindow::uploadClipboardImage(SessionTabInfo *s) {
             sock = ::socket(res->ai_family, res->ai_socktype, res->ai_protocol);
             if (sock >= 0) {
                 struct timeval tv{5, 0};
-                setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv);
-                setsockopt(sock, SOL_SOCKET, SO_SNDTIMEO, (const char*)&tv, sizeof tv);
+                setsockopt(sock, SOL_SOCKET, SO_RCVTIMEO, (const char *)&tv, sizeof tv);
+                setsockopt(sock, SOL_SOCKET, SO_SNDTIMEO, (const char *)&tv, sizeof tv);
 
                 if (::connect(sock, res->ai_addr, res->ai_addrlen) == 0) {
                     session = libssh2_session_init();
@@ -951,24 +965,27 @@ void MainWindow::uploadClipboardImage(SessionTabInfo *s) {
                         QString privKey = params.privateKeyPath;
                         if (privKey.isEmpty()) {
                             QString home = QDir::homePath();
-                            for (const QString &c : {home + "/.ssh/id_rsa", home + "/.ssh/id_ed25519", home + "/.ssh/id_ecdsa"}) {
-                                if (QFile::exists(c)) { privKey = c; break; }
+                            for (const QString &c :
+                                 {home + "/.ssh/id_rsa", home + "/.ssh/id_ed25519", home + "/.ssh/id_ecdsa"}) {
+                                if (QFile::exists(c)) {
+                                    privKey = c;
+                                    break;
+                                }
                             }
                         }
 
                         if (!privKey.isEmpty() && QFile::exists(privKey)) {
                             QString pubKey = privKey + ".pub";
                             authOk = (libssh2_userauth_publickey_fromfile(
-                                session,
-                                userBytes.constData(),
-                                QFile::exists(pubKey) ? pubKey.toUtf8().constData() : nullptr,
-                                privKey.toUtf8().constData(),
-                                passBytes.isEmpty() ? nullptr : passBytes.constData()
-                            ) == 0);
+                                          session, userBytes.constData(),
+                                          QFile::exists(pubKey) ? pubKey.toUtf8().constData() : nullptr,
+                                          privKey.toUtf8().constData(),
+                                          passBytes.isEmpty() ? nullptr : passBytes.constData()) == 0);
                         }
 
                         if (!authOk && !passBytes.isEmpty()) {
-                            authOk = (libssh2_userauth_password(session, userBytes.constData(), passBytes.constData()) == 0);
+                            authOk =
+                                (libssh2_userauth_password(session, userBytes.constData(), passBytes.constData()) == 0);
                         }
 
                         if (authOk) {
@@ -976,28 +993,32 @@ void MainWindow::uploadClipboardImage(SessionTabInfo *s) {
                             if (sftp) {
                                 QFile localF(localPath);
                                 if (localF.open(QIODevice::ReadOnly)) {
-                                    LIBSSH2_SFTP_HANDLE *h = libssh2_sftp_open(
-                                        sftp,
-                                        remotePath.toUtf8().constData(),
-                                        LIBSSH2_FXF_WRITE | LIBSSH2_FXF_CREAT | LIBSSH2_FXF_TRUNC,
-                                        LIBSSH2_SFTP_S_IRUSR | LIBSSH2_SFTP_S_IWUSR | LIBSSH2_SFTP_S_IRGRP | LIBSSH2_SFTP_S_IROTH
-                                    );
+                                    LIBSSH2_SFTP_HANDLE *h =
+                                        libssh2_sftp_open(sftp, remotePath.toUtf8().constData(),
+                                                          LIBSSH2_FXF_WRITE | LIBSSH2_FXF_CREAT | LIBSSH2_FXF_TRUNC,
+                                                          LIBSSH2_SFTP_S_IRUSR | LIBSSH2_SFTP_S_IWUSR |
+                                                              LIBSSH2_SFTP_S_IRGRP | LIBSSH2_SFTP_S_IROTH);
 
                                     if (h) {
                                         char buf[16384];
                                         bool writeOk = true;
                                         while (!localF.atEnd()) {
                                             qint64 r = localF.read(buf, sizeof(buf));
-                                            if (r <= 0) break;
+                                            if (r <= 0)
+                                                break;
                                             char *p = buf;
                                             qint64 rem = r;
                                             while (rem > 0) {
                                                 ssize_t w = libssh2_sftp_write(h, p, rem);
-                                                if (w < 0) { writeOk = false; break; }
+                                                if (w < 0) {
+                                                    writeOk = false;
+                                                    break;
+                                                }
                                                 p += w;
                                                 rem -= w;
                                             }
-                                            if (!writeOk) break;
+                                            if (!writeOk)
+                                                break;
                                         }
                                         libssh2_sftp_close(h);
                                         uploadSuccess = writeOk;
@@ -1018,7 +1039,8 @@ void MainWindow::uploadClipboardImage(SessionTabInfo *s) {
                     } else {
                         errorMsg = "SFTP handshake failed";
                     }
-                    if (session) libssh2_session_free(session);
+                    if (session)
+                        libssh2_session_free(session);
                 } else {
                     errorMsg = "SFTP connect failed";
                 }

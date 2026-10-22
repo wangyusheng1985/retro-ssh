@@ -1,15 +1,15 @@
 #pragma once
 
-#include <QDialog>
-#include <QTreeWidget>
-#include <QStackedWidget>
-#include <QLineEdit>
-#include <QListWidget>
-#include <QComboBox>
+#include "backend/ProfileManager.h"
+#include "backend/SshSessionWorker.h"
 #include <QCheckBox>
 #include <QColor>
-#include "backend/SshSessionWorker.h"
-#include "backend/ProfileManager.h"
+#include <QComboBox>
+#include <QDialog>
+#include <QLineEdit>
+#include <QListWidget>
+#include <QStackedWidget>
+#include <QTreeWidget>
 
 class ProfileSettingsDialog : public QDialog {
     Q_OBJECT
@@ -39,14 +39,14 @@ public:
 
 private:
     void setupTree();
-    QWidget* createConnectionPage();
-    QWidget* createAuthenticationPage();
-    QWidget* createCipherPage();
-    QWidget* createFontPage();
-    QWidget* createColorsPage();
-    QWidget* createMessagesPage();
+    QWidget *createConnectionPage();
+    QWidget *createAuthenticationPage();
+    QWidget *createCipherPage();
+    QWidget *createFontPage();
+    QWidget *createColorsPage();
+    QWidget *createMessagesPage();
 
-    QComboBox* createColorComboBox(const QStringList &colors, const QString &defaultColor, QWidget *parent);
+    QComboBox *createColorComboBox(const QStringList &colors, const QString &defaultColor, QWidget *parent);
 
     QTreeWidget *m_tree = nullptr;
     QStackedWidget *m_pages = nullptr;
@@ -83,6 +83,9 @@ private:
     QCheckBox *m_confirmExitCb = nullptr;
     QCheckBox *m_showStatusBarMsgCb = nullptr;
     QCheckBox *m_showErrorDialogsCb = nullptr;
+
+    // Profile metadata
+    QString m_profileName;
 
     // Cipher widgets
     QListWidget *m_cipherList = nullptr;

@@ -1,16 +1,15 @@
 #include "ProfileSettingsDialog.h"
-#include <QHBoxLayout>
-#include <QVBoxLayout>
+#include <QFontDatabase>
 #include <QGridLayout>
+#include <QGroupBox>
+#include <QHBoxLayout>
+#include <QHeaderView>
 #include <QLabel>
 #include <QPushButton>
-#include <QHeaderView>
-#include <QGroupBox>
-#include <QFontDatabase>
 #include <QSet>
+#include <QVBoxLayout>
 
-ProfileSettingsDialog::ProfileSettingsDialog(QWidget *parent)
-    : QDialog(parent) {
+ProfileSettingsDialog::ProfileSettingsDialog(QWidget *parent) : QDialog(parent) {
     setWindowTitle("Settings");
     resize(580, 490);
     setWindowFlags(windowFlags() & ~Qt::WindowContextHelpButtonHint);
@@ -43,12 +42,12 @@ ProfileSettingsDialog::ProfileSettingsDialog(QWidget *parent)
 
     // Right stacked pages
     m_pages = new QStackedWidget(this);
-    m_pages->addWidget(createConnectionPage());       // Index 0
-    m_pages->addWidget(createCipherPage());           // Index 1
-    m_pages->addWidget(createAuthenticationPage());   // Index 2
-    m_pages->addWidget(createFontPage());             // Index 3
-    m_pages->addWidget(createColorsPage());           // Index 4
-    m_pages->addWidget(createMessagesPage());         // Index 5
+    m_pages->addWidget(createConnectionPage());     // Index 0
+    m_pages->addWidget(createCipherPage());         // Index 1
+    m_pages->addWidget(createAuthenticationPage()); // Index 2
+    m_pages->addWidget(createFontPage());           // Index 3
+    m_pages->addWidget(createColorsPage());         // Index 4
+    m_pages->addWidget(createMessagesPage());       // Index 5
 
     contentLayout->addWidget(m_pages, 1);
     rootLayout->addLayout(contentLayout, 1);
@@ -75,7 +74,8 @@ ProfileSettingsDialog::ProfileSettingsDialog(QWidget *parent)
     rootLayout->addLayout(btnLayout);
 
     connect(m_tree, &QTreeWidget::currentItemChanged, this, [this](QTreeWidgetItem *current) {
-        if (!current) return;
+        if (!current)
+            return;
         int pageIdx = current->data(0, Qt::UserRole).toInt();
         m_pages->setCurrentIndex(pageIdx);
     });
@@ -115,13 +115,11 @@ void ProfileSettingsDialog::setupTree() {
     itemMsg->setData(0, Qt::UserRole, 5);
 }
 
-static QWidget* createPageHeader(const QString &title) {
+static QWidget *createPageHeader(const QString &title) {
     QWidget *header = new QWidget();
     header->setFixedHeight(26);
-    header->setStyleSheet(
-        "background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #4A90E2, stop:1 #2175D9);"
-        "border: 1px solid #104E9E;"
-    );
+    header->setStyleSheet("background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #4A90E2, stop:1 #2175D9);"
+                          "border: 1px solid #104E9E;");
     QHBoxLayout *hl = new QHBoxLayout(header);
     hl->setContentsMargins(8, 0, 8, 0);
     QLabel *lbl = new QLabel(title, header);
@@ -130,7 +128,7 @@ static QWidget* createPageHeader(const QString &title) {
     return header;
 }
 
-QWidget* ProfileSettingsDialog::createMessagesPage() {
+QWidget *ProfileSettingsDialog::createMessagesPage() {
     QWidget *w = new QWidget();
     QVBoxLayout *vl = new QVBoxLayout(w);
     vl->setContentsMargins(0, 0, 0, 0);
@@ -177,7 +175,7 @@ QWidget* ProfileSettingsDialog::createMessagesPage() {
     return w;
 }
 
-QWidget* ProfileSettingsDialog::createConnectionPage() {
+QWidget *ProfileSettingsDialog::createConnectionPage() {
     QWidget *w = new QWidget();
     QVBoxLayout *vl = new QVBoxLayout(w);
     vl->setContentsMargins(0, 0, 0, 0);
@@ -185,11 +183,14 @@ QWidget* ProfileSettingsDialog::createConnectionPage() {
 
     vl->addWidget(createPageHeader("Connection"));
 
-    QLabel *desc1 = new QLabel("Configure protocol settings for the connection. New settings will take effect upon next login.", w);
+    QLabel *desc1 =
+        new QLabel("Configure protocol settings for the connection. New settings will take effect upon next login.", w);
     desc1->setWordWrap(true);
     vl->addWidget(desc1);
 
-    QLabel *desc2 = new QLabel("Specify * as the host name or the user name to be prompted for the information when the profile is chosen for connecting.", w);
+    QLabel *desc2 = new QLabel("Specify * as the host name or the user name to be prompted for the information when "
+                               "the profile is chosen for connecting.",
+                               w);
     desc2->setWordWrap(true);
     desc2->setStyleSheet("color: #333333; margin-bottom: 4px;");
     vl->addWidget(desc2);
@@ -255,7 +256,7 @@ QWidget* ProfileSettingsDialog::createConnectionPage() {
     return w;
 }
 
-static QHBoxLayout* createSubToolbar(QWidget *parent, QListWidget *list) {
+static QHBoxLayout *createSubToolbar(QWidget *parent, QListWidget *list) {
     QHBoxLayout *hl = new QHBoxLayout();
     hl->setSpacing(2);
     hl->addStretch();
@@ -268,9 +269,7 @@ static QHBoxLayout* createSubToolbar(QWidget *parent, QListWidget *list) {
     QPushButton *delBtn = new QPushButton("✕", parent);
     delBtn->setFixedSize(22, 20);
     delBtn->setToolTip("Delete");
-    QObject::connect(delBtn, &QPushButton::clicked, parent, [list]() {
-        delete list->takeItem(list->currentRow());
-    });
+    QObject::connect(delBtn, &QPushButton::clicked, parent, [list]() { delete list->takeItem(list->currentRow()); });
     hl->addWidget(delBtn);
 
     QPushButton *upBtn = new QPushButton("▲", parent);
@@ -302,7 +301,7 @@ static QHBoxLayout* createSubToolbar(QWidget *parent, QListWidget *list) {
     return hl;
 }
 
-QWidget* ProfileSettingsDialog::createAuthenticationPage() {
+QWidget *ProfileSettingsDialog::createAuthenticationPage() {
     QWidget *w = new QWidget();
     QVBoxLayout *vl = new QVBoxLayout(w);
     vl->setContentsMargins(0, 0, 0, 0);
@@ -325,14 +324,8 @@ QWidget* ProfileSettingsDialog::createAuthenticationPage() {
 
     QListWidget *pkList = new QListWidget(w);
     pkList->setFixedHeight(85);
-    pkList->addItems({
-        "SSH Accession Certificates",
-        "SSH Accession Keys",
-        "PKCS #11 Certificates",
-        "PKCS #11 Keys",
-        "User Certificates",
-        "User Keys"
-    });
+    pkList->addItems({"SSH Accession Certificates", "SSH Accession Keys", "PKCS #11 Certificates", "PKCS #11 Keys",
+                      "User Certificates", "User Keys"});
     QHBoxLayout *bar2 = new QHBoxLayout();
     bar2->addWidget(new QLabel("Public-key authentication methods:", w));
     bar2->addLayout(createSubToolbar(w, pkList));
@@ -344,8 +337,10 @@ QWidget* ProfileSettingsDialog::createAuthenticationPage() {
     gbVl->setContentsMargins(6, 6, 6, 6);
     gbVl->setSpacing(4);
 
-    QLabel *gbDesc = new QLabel(
-        "Configure agent forwarding for SSH2 and SSH1 connections. This feature is available with SSH Accession, which provides single sign-on to servers that allow public-key authentication.", gb);
+    QLabel *gbDesc =
+        new QLabel("Configure agent forwarding for SSH2 and SSH1 connections. This feature is available with SSH "
+                   "Accession, which provides single sign-on to servers that allow public-key authentication.",
+                   gb);
     gbDesc->setWordWrap(true);
     gbVl->addWidget(gbDesc);
 
@@ -364,7 +359,7 @@ QWidget* ProfileSettingsDialog::createAuthenticationPage() {
     return w;
 }
 
-QWidget* ProfileSettingsDialog::createFontPage() {
+QWidget *ProfileSettingsDialog::createFontPage() {
     QWidget *w = new QWidget();
     QVBoxLayout *vl = new QVBoxLayout(w);
     vl->setContentsMargins(0, 0, 0, 0);
@@ -372,7 +367,9 @@ QWidget* ProfileSettingsDialog::createFontPage() {
 
     vl->addWidget(createPageHeader("Font"));
 
-    QLabel *desc = new QLabel("Select the font to be used in the terminal window. The font list contains non-proportional fonts currently installed on the local computer.", w);
+    QLabel *desc = new QLabel("Select the font to be used in the terminal window. The font list contains "
+                              "non-proportional fonts currently installed on the local computer.",
+                              w);
     desc->setWordWrap(true);
     vl->addWidget(desc);
 
@@ -387,10 +384,9 @@ QWidget* ProfileSettingsDialog::createFontPage() {
     QSet<QString> addedSet;
 
     // Prioritize popular programming/monospace families
-    static const QStringList candidates = {
-        "SF Mono", "Menlo", "Monaco", "Courier New", "Consolas",
-        "JetBrains Mono", "Cascadia Code", "Fira Code", "Source Code Pro", "Inconsolata"
-    };
+    static const QStringList candidates = {"SF Mono",         "Menlo",          "Monaco",        "Courier New",
+                                           "Consolas",        "JetBrains Mono", "Cascadia Code", "Fira Code",
+                                           "Source Code Pro", "Inconsolata"};
     for (const QString &c : candidates) {
         for (const QString &f : allFamilies) {
             if (f.compare(c, Qt::CaseInsensitive) == 0 && !addedSet.contains(f)) {
@@ -452,7 +448,7 @@ QWidget* ProfileSettingsDialog::createFontPage() {
     return w;
 }
 
-QWidget* ProfileSettingsDialog::createCipherPage() {
+QWidget *ProfileSettingsDialog::createCipherPage() {
     QWidget *w = new QWidget();
     QVBoxLayout *vl = new QVBoxLayout(w);
     vl->setContentsMargins(0, 0, 0, 0);
@@ -464,15 +460,8 @@ QWidget* ProfileSettingsDialog::createCipherPage() {
     vl->addWidget(desc);
 
     m_cipherList = new QListWidget(w);
-    m_cipherList->addItems({
-        "aes256-gcm@openssh.com",
-        "chacha20-poly1305@openssh.com",
-        "aes128-gcm@openssh.com",
-        "aes256-ctr",
-        "aes192-ctr",
-        "aes128-ctr",
-        "3des-cbc"
-    });
+    m_cipherList->addItems({"aes256-gcm@openssh.com", "chacha20-poly1305@openssh.com", "aes128-gcm@openssh.com",
+                            "aes256-ctr", "aes192-ctr", "aes128-ctr", "3des-cbc"});
     for (int i = 0; i < m_cipherList->count(); ++i) {
         m_cipherList->item(i)->setCheckState(Qt::Checked);
     }
@@ -481,15 +470,17 @@ QWidget* ProfileSettingsDialog::createCipherPage() {
     return w;
 }
 
-QComboBox* ProfileSettingsDialog::createColorComboBox(const QStringList &colors, const QString &defaultColor, QWidget *parent) {
+QComboBox *ProfileSettingsDialog::createColorComboBox(const QStringList &colors, const QString &defaultColor,
+                                                      QWidget *parent) {
     QComboBox *cb = new QComboBox(parent);
     cb->addItems(colors);
     int idx = cb->findText(defaultColor);
-    if (idx >= 0) cb->setCurrentIndex(idx);
+    if (idx >= 0)
+        cb->setCurrentIndex(idx);
     return cb;
 }
 
-QWidget* ProfileSettingsDialog::createColorsPage() {
+QWidget *ProfileSettingsDialog::createColorsPage() {
     QWidget *w = new QWidget();
     QVBoxLayout *vl = new QVBoxLayout(w);
     vl->setContentsMargins(0, 0, 0, 0);
@@ -542,7 +533,8 @@ QWidget* ProfileSettingsDialog::createColorsPage() {
     m_enableAnsiCb = new QCheckBox("Enable ANSI colors", ansiGb);
     m_enableAnsiCb->setChecked(true);
     ansiHl->addWidget(m_enableAnsiCb);
-    QLabel *ansiDesc = new QLabel("Enable ANSI Colors for color support.\nDisable to use only foreground and background colors.", ansiGb);
+    QLabel *ansiDesc = new QLabel(
+        "Enable ANSI Colors for color support.\nDisable to use only foreground and background colors.", ansiGb);
     ansiHl->addWidget(ansiDesc);
     ansiHl->addStretch();
     vl->addWidget(ansiGb);
@@ -564,39 +556,60 @@ QWidget* ProfileSettingsDialog::createColorsPage() {
 
 QColor ProfileSettingsDialog::colorNameToQColor(const QString &name) {
     QString trimmed = name.trimmed();
-    if (trimmed.isEmpty()) return Qt::white;
+    if (trimmed.isEmpty())
+        return Qt::white;
 
     if (trimmed.startsWith("#")) {
         QColor hexColor(trimmed);
-        if (hexColor.isValid()) return hexColor;
+        if (hexColor.isValid())
+            return hexColor;
     }
 
-    if (trimmed.compare("Black", Qt::CaseInsensitive) == 0) return Qt::black;
-    if (trimmed.compare("White", Qt::CaseInsensitive) == 0) return Qt::white;
-    if (trimmed.compare("Gray", Qt::CaseInsensitive) == 0 || trimmed.compare("Grey", Qt::CaseInsensitive) == 0) return QColor(112, 112, 112);
-    if (trimmed.compare("Blue", Qt::CaseInsensitive) == 0) return Qt::blue;
-    if (trimmed.compare("Aqua", Qt::CaseInsensitive) == 0 || trimmed.compare("Cyan", Qt::CaseInsensitive) == 0) return QColor(0, 255, 255);
-    if (trimmed.compare("Red", Qt::CaseInsensitive) == 0) return Qt::red;
-    if (trimmed.compare("Green", Qt::CaseInsensitive) == 0) return Qt::green;
-    if (trimmed.compare("Yellow", Qt::CaseInsensitive) == 0) return Qt::yellow;
-    if (trimmed.compare("Magenta", Qt::CaseInsensitive) == 0) return Qt::magenta;
+    if (trimmed.compare("Black", Qt::CaseInsensitive) == 0)
+        return Qt::black;
+    if (trimmed.compare("White", Qt::CaseInsensitive) == 0)
+        return Qt::white;
+    if (trimmed.compare("Gray", Qt::CaseInsensitive) == 0 || trimmed.compare("Grey", Qt::CaseInsensitive) == 0)
+        return QColor(112, 112, 112);
+    if (trimmed.compare("Blue", Qt::CaseInsensitive) == 0)
+        return Qt::blue;
+    if (trimmed.compare("Aqua", Qt::CaseInsensitive) == 0 || trimmed.compare("Cyan", Qt::CaseInsensitive) == 0)
+        return QColor(0, 255, 255);
+    if (trimmed.compare("Red", Qt::CaseInsensitive) == 0)
+        return Qt::red;
+    if (trimmed.compare("Green", Qt::CaseInsensitive) == 0)
+        return Qt::green;
+    if (trimmed.compare("Yellow", Qt::CaseInsensitive) == 0)
+        return Qt::yellow;
+    if (trimmed.compare("Magenta", Qt::CaseInsensitive) == 0)
+        return Qt::magenta;
 
     QColor genericColor(trimmed);
-    if (genericColor.isValid()) return genericColor;
+    if (genericColor.isValid())
+        return genericColor;
 
     return Qt::white;
 }
 
 QString ProfileSettingsDialog::qcolorToColorName(const QColor &c) {
-    if (c == Qt::black || c == QColor(0x1F, 0x23, 0x28)) return "Black";
-    if (c == Qt::white || c == QColor(0xFA, 0xFB, 0xFC)) return "White";
-    if (c == QColor(112, 112, 112) || c == Qt::gray) return "Gray";
-    if (c == Qt::blue || c == QColor(0x09, 0x69, 0xDA)) return "Blue";
-    if (c == QColor(0, 255, 255) || c == Qt::cyan || c == QColor(0xB6, 0xD7, 0xFF)) return "Aqua";
-    if (c == Qt::red) return "Red";
-    if (c == Qt::green) return "Green";
-    if (c == Qt::yellow) return "Yellow";
-    if (c == Qt::magenta) return "Magenta";
+    if (c == Qt::black || c == QColor(0x1F, 0x23, 0x28))
+        return "Black";
+    if (c == Qt::white || c == QColor(0xFA, 0xFB, 0xFC))
+        return "White";
+    if (c == QColor(112, 112, 112) || c == Qt::gray)
+        return "Gray";
+    if (c == Qt::blue || c == QColor(0x09, 0x69, 0xDA))
+        return "Blue";
+    if (c == QColor(0, 255, 255) || c == Qt::cyan || c == QColor(0xB6, 0xD7, 0xFF))
+        return "Aqua";
+    if (c == Qt::red)
+        return "Red";
+    if (c == Qt::green)
+        return "Green";
+    if (c == Qt::yellow)
+        return "Yellow";
+    if (c == Qt::magenta)
+        return "Magenta";
     return c.name(QColor::HexRgb).toUpper();
 }
 
@@ -645,7 +658,8 @@ int ProfileSettingsDialog::getSelectedFontSize() const {
 int ProfileSettingsDialog::getScrollbackBuffer() const {
     if (m_scrollbackEdit) {
         int v = m_scrollbackEdit->text().toInt();
-        if (v > 0) return v;
+        if (v > 0)
+            return v;
     }
     return 500;
 }
@@ -682,6 +696,7 @@ void ProfileSettingsDialog::setParams(const SshConnectionParams &params) {
 }
 
 void ProfileSettingsDialog::setProfileData(const ProfileData &data) {
+    m_profileName = data.name;
     setParams(data.params);
     if (m_keepAliveCb) {
         m_keepAliveCb->setChecked(data.keepAlive);
@@ -727,43 +742,57 @@ void ProfileSettingsDialog::setProfileData(const ProfileData &data) {
     }
 
     // Appearance
-    if (m_scrollbackEdit) m_scrollbackEdit->setText(QString::number(data.scrollbackBuffer));
-    if (m_scrollBottomOnOutputCb) m_scrollBottomOnOutputCb->setChecked(data.scrollOnOutput);
-    if (m_pasteOnRightClickCb) m_pasteOnRightClickCb->setChecked(data.pasteOnRightClick);
+    if (m_scrollbackEdit)
+        m_scrollbackEdit->setText(QString::number(data.scrollbackBuffer));
+    if (m_scrollBottomOnOutputCb)
+        m_scrollBottomOnOutputCb->setChecked(data.scrollOnOutput);
+    if (m_pasteOnRightClickCb)
+        m_pasteOnRightClickCb->setChecked(data.pasteOnRightClick);
 
     // Colors
     if (m_fgColorCombo) {
         int idx = m_fgColorCombo->findText(data.fgColor);
-        if (idx >= 0) m_fgColorCombo->setCurrentIndex(idx);
+        if (idx >= 0)
+            m_fgColorCombo->setCurrentIndex(idx);
     }
     if (m_bgColorCombo) {
         int idx = m_bgColorCombo->findText(data.bgColor);
-        if (idx >= 0) m_bgColorCombo->setCurrentIndex(idx);
+        if (idx >= 0)
+            m_bgColorCombo->setCurrentIndex(idx);
     }
     if (m_selColorCombo) {
         int idx = m_selColorCombo->findText(data.selColor);
-        if (idx >= 0) m_selColorCombo->setCurrentIndex(idx);
+        if (idx >= 0)
+            m_selColorCombo->setCurrentIndex(idx);
     }
     if (m_cursorColorCombo) {
         int idx = m_cursorColorCombo->findText(data.cursorColor);
-        if (idx >= 0) m_cursorColorCombo->setCurrentIndex(idx);
+        if (idx >= 0)
+            m_cursorColorCombo->setCurrentIndex(idx);
     }
-    if (m_enableAnsiCb) m_enableAnsiCb->setChecked(data.enableAnsiColors);
-    if (m_reverseVideoCb) m_reverseVideoCb->setChecked(data.reverseVideo);
+    if (m_enableAnsiCb)
+        m_enableAnsiCb->setChecked(data.enableAnsiColors);
+    if (m_reverseVideoCb)
+        m_reverseVideoCb->setChecked(data.reverseVideo);
 }
 
 ProfileData ProfileSettingsDialog::getProfileData() const {
     ProfileData p;
+    p.name = m_profileName;
     p.params = getParams();
     p.fontFamily = getSelectedFontFamily();
     p.fontSize = getSelectedFontSize();
     p.scrollbackBuffer = getScrollbackBuffer();
     p.scrollOnOutput = getScrollOnOutput();
     p.pasteOnRightClick = getPasteOnRightClick();
-    if (m_fgColorCombo) p.fgColor = m_fgColorCombo->currentText();
-    if (m_bgColorCombo) p.bgColor = m_bgColorCombo->currentText();
-    if (m_selColorCombo) p.selColor = m_selColorCombo->currentText();
-    if (m_cursorColorCombo) p.cursorColor = m_cursorColorCombo->currentText();
+    if (m_fgColorCombo)
+        p.fgColor = m_fgColorCombo->currentText();
+    if (m_bgColorCombo)
+        p.bgColor = m_bgColorCombo->currentText();
+    if (m_selColorCombo)
+        p.selColor = m_selColorCombo->currentText();
+    if (m_cursorColorCombo)
+        p.cursorColor = m_cursorColorCombo->currentText();
     p.enableAnsiColors = getEnableAnsiColors();
     p.reverseVideo = getReverseVideo();
     if (m_keepAliveCb) {

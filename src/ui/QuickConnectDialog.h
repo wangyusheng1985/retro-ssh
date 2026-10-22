@@ -1,10 +1,10 @@
 #pragma once
 
+#include "backend/SshSessionWorker.h"
+#include <QComboBox>
 #include <QDialog>
 #include <QLineEdit>
 #include <QPushButton>
-#include <QComboBox>
-#include "backend/SshSessionWorker.h"
 
 class QuickConnectDialog : public QDialog {
     Q_OBJECT

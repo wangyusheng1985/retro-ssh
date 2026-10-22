@@ -1,20 +1,19 @@
 #include "SftpWorker.h"
-#include <QFile>
-#include <QDir>
 #include <QDebug>
+#include <QDir>
+#include <QFile>
 #include <fcntl.h>
 #include <unistd.h>
 
-SftpWorker::SftpWorker(QObject *parent)
-    : QObject(parent) {
-}
+SftpWorker::SftpWorker(QObject *parent) : QObject(parent) {}
 
 SftpWorker::~SftpWorker() {
     closeSftp();
 }
 
 bool SftpWorker::initSftp(LIBSSH2_SESSION *session) {
-    if (!session) return false;
+    if (!session)
+        return false;
     m_session = session;
     libssh2_session_set_blocking(m_session, 1);
     m_sftp = libssh2_sftp_init(m_session);
@@ -48,7 +47,8 @@ void SftpWorker::listRemoteDir(const QString &remotePath) {
 
     while (libssh2_sftp_readdir_ex(handle, mem, sizeof(mem), longentry, sizeof(longentry), &attrs) > 0) {
         QString name = QString::fromUtf8(mem);
-        if (name == "." || name == "..") continue;
+        if (name == "." || name == "..")
+            continue;
 
         RemoteFileInfo info;
         info.name = name;
@@ -64,7 +64,8 @@ void SftpWorker::listRemoteDir(const QString &remotePath) {
 }
 
 void SftpWorker::uploadFile(const QString &localFilePath, const QString &targetRemotePath) {
-    if (!m_sftp) return;
+    if (!m_sftp)
+        return;
 
     QFile localFile(localFilePath);
     if (!localFile.open(QIODevice::ReadOnly)) {
@@ -79,11 +80,8 @@ void SftpWorker::uploadFile(const QString &localFilePath, const QString &targetR
     }
 
     LIBSSH2_SFTP_HANDLE *handle = libssh2_sftp_open(
-        m_sftp,
-        remotePath.toUtf8().constData(),
-        LIBSSH2_FXF_WRITE | LIBSSH2_FXF_CREAT | LIBSSH2_FXF_TRUNC,
-        LIBSSH2_SFTP_S_IRUSR | LIBSSH2_SFTP_S_IWUSR | LIBSSH2_SFTP_S_IRGRP | LIBSSH2_SFTP_S_IROTH
-    );
+        m_sftp, remotePath.toUtf8().constData(), LIBSSH2_FXF_WRITE | LIBSSH2_FXF_CREAT | LIBSSH2_FXF_TRUNC,
+        LIBSSH2_SFTP_S_IRUSR | LIBSSH2_SFTP_S_IWUSR | LIBSSH2_SFTP_S_IRGRP | LIBSSH2_SFTP_S_IROTH);
 
     if (!handle) {
         emit transferFinished(fi.fileName(), false, "Failed to create remote file", 0);
@@ -96,7 +94,8 @@ void SftpWorker::uploadFile(const QString &localFilePath, const QString &targetR
 
     while (!localFile.atEnd()) {
         qint64 readBytes = localFile.read(buffer, sizeof(buffer));
-        if (readBytes <= 0) break;
+        if (readBytes <= 0)
+            break;
 
         char *ptr = buffer;
         qint64 remaining = readBytes;
@@ -119,7 +118,8 @@ void SftpWorker::uploadFile(const QString &localFilePath, const QString &targetR
 }
 
 void SftpWorker::downloadFile(const QString &remoteFilePath, const QString &targetLocalPath) {
-    if (!m_sftp) return;
+    if (!m_sftp)
+        return;
 
     QFileInfo rfi(remoteFilePath);
     QString localPath = targetLocalPath;
@@ -127,12 +127,7 @@ void SftpWorker::downloadFile(const QString &remoteFilePath, const QString &targ
         localPath = QDir(localPath).filePath(rfi.fileName());
     }
 
-    LIBSSH2_SFTP_HANDLE *handle = libssh2_sftp_open(
-        m_sftp,
-        remoteFilePath.toUtf8().constData(),
-        LIBSSH2_FXF_READ,
-        0
-    );
+    LIBSSH2_SFTP_HANDLE *handle = libssh2_sftp_open(m_sftp, remoteFilePath.toUtf8().constData(), LIBSSH2_FXF_READ, 0);
 
     if (!handle) {
         emit transferFinished(rfi.fileName(), false, "Failed to open remote file", 0);
@@ -160,7 +155,8 @@ void SftpWorker::downloadFile(const QString &remoteFilePath, const QString &targ
             emit transferFinished(rfi.fileName(), false, "Read error during download", received);
             return;
         }
-        if (rc == 0) break; // EOF
+        if (rc == 0)
+            break; // EOF
 
         localFile.write(buffer, rc);
         received += rc;
@@ -173,19 +169,23 @@ void SftpWorker::downloadFile(const QString &remoteFilePath, const QString &targ
 }
 
 void SftpWorker::uploadDirectory(const QString &localDirPath, const QString &targetRemoteDirPath) {
-    if (!m_sftp) return;
+    if (!m_sftp)
+        return;
 
     QDir localDir(localDirPath);
-    if (!localDir.exists()) return;
+    if (!localDir.exists())
+        return;
 
     QString dirName = localDir.dirName();
     QString remoteTarget = targetRemoteDirPath;
-    if (!remoteTarget.endsWith('/')) remoteTarget += '/';
+    if (!remoteTarget.endsWith('/'))
+        remoteTarget += '/';
     remoteTarget += dirName;
 
     // Create remote folder (ignore error if already exists)
     libssh2_sftp_mkdir(m_sftp, remoteTarget.toUtf8().constData(),
-                       LIBSSH2_SFTP_S_IRWXU | LIBSSH2_SFTP_S_IRGRP | LIBSSH2_SFTP_S_IXGRP | LIBSSH2_SFTP_S_IROTH | LIBSSH2_SFTP_S_IXOTH);
+                       LIBSSH2_SFTP_S_IRWXU | LIBSSH2_SFTP_S_IRGRP | LIBSSH2_SFTP_S_IXGRP | LIBSSH2_SFTP_S_IROTH |
+                           LIBSSH2_SFTP_S_IXOTH);
 
     // Recursively process entries
     QFileInfoList entries = localDir.entryInfoList(QDir::Files | QDir::Dirs | QDir::NoDotAndDotDot);
@@ -199,7 +199,8 @@ void SftpWorker::uploadDirectory(const QString &localDirPath, const QString &tar
 }
 
 void SftpWorker::downloadDirectory(const QString &remoteDirPath, const QString &targetLocalDirPath) {
-    if (!m_sftp) return;
+    if (!m_sftp)
+        return;
 
     // Extract directory name
     QString cleanRemote = remoteDirPath;
@@ -207,7 +208,8 @@ void SftpWorker::downloadDirectory(const QString &remoteDirPath, const QString &
         cleanRemote.chop(1);
     }
     QString dirName = cleanRemote.mid(cleanRemote.lastIndexOf('/') + 1);
-    if (dirName.isEmpty()) dirName = "remote_dir";
+    if (dirName.isEmpty())
+        dirName = "remote_dir";
 
     QString localTarget = QDir(targetLocalDirPath).filePath(dirName);
     QDir().mkpath(localTarget);
@@ -215,7 +217,8 @@ void SftpWorker::downloadDirectory(const QString &remoteDirPath, const QString &
     // List remote directory
     QByteArray pathBytes = cleanRemote.toUtf8();
     LIBSSH2_SFTP_HANDLE *handle = libssh2_sftp_opendir(m_sftp, pathBytes.constData());
-    if (!handle) return;
+    if (!handle)
+        return;
 
     char mem[512];
     char longentry[1024];
@@ -228,7 +231,8 @@ void SftpWorker::downloadDirectory(const QString &remoteDirPath, const QString &
 
     while (libssh2_sftp_readdir_ex(handle, mem, sizeof(mem), longentry, sizeof(longentry), &attrs) > 0) {
         QString name = QString::fromUtf8(mem);
-        if (name == "." || name == "..") continue;
+        if (name == "." || name == "..")
+            continue;
         subEntries.append({name, (bool)LIBSSH2_SFTP_S_ISDIR(attrs.permissions)});
     }
     libssh2_sftp_closedir(handle);
@@ -244,26 +248,31 @@ void SftpWorker::downloadDirectory(const QString &remoteDirPath, const QString &
 }
 
 bool SftpWorker::createRemoteDir(const QString &dirPath) {
-    if (!m_sftp) return false;
+    if (!m_sftp)
+        return false;
     int rc = libssh2_sftp_mkdir(m_sftp, dirPath.toUtf8().constData(),
-                                LIBSSH2_SFTP_S_IRWXU | LIBSSH2_SFTP_S_IRGRP | LIBSSH2_SFTP_S_IXGRP | LIBSSH2_SFTP_S_IROTH | LIBSSH2_SFTP_S_IXOTH);
+                                LIBSSH2_SFTP_S_IRWXU | LIBSSH2_SFTP_S_IRGRP | LIBSSH2_SFTP_S_IXGRP |
+                                    LIBSSH2_SFTP_S_IROTH | LIBSSH2_SFTP_S_IXOTH);
     return rc == 0;
 }
 
 bool SftpWorker::deleteRemoteFile(const QString &filePath) {
-    if (!m_sftp) return false;
+    if (!m_sftp)
+        return false;
     int rc = libssh2_sftp_unlink(m_sftp, filePath.toUtf8().constData());
     return rc == 0;
 }
 
 bool SftpWorker::deleteRemoteDir(const QString &dirPath) {
-    if (!m_sftp) return false;
+    if (!m_sftp)
+        return false;
     int rc = libssh2_sftp_rmdir(m_sftp, dirPath.toUtf8().constData());
     return rc == 0;
 }
 
 bool SftpWorker::renameRemote(const QString &oldPath, const QString &newPath) {
-    if (!m_sftp) return false;
+    if (!m_sftp)
+        return false;
     int rc = libssh2_sftp_rename(m_sftp, oldPath.toUtf8().constData(), newPath.toUtf8().constData());
     return rc == 0;
 }

@@ -1,9 +1,9 @@
+#include "backend/SftpWorker.h"
+#include "backend/SshSessionWorker.h"
+#include "ui/MainWindow.h"
 #include <QApplication>
 #include <QFile>
 #include <QStyleFactory>
-#include "ui/MainWindow.h"
-#include "backend/SshSessionWorker.h"
-#include "backend/SftpWorker.h"
 
 int main(int argc, char *argv[]) {
     // Ensure on macOS physical Control is Qt::ControlModifier and Command is Qt::MetaModifier

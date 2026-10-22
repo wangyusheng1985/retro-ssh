@@ -1,0 +1,157 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Lint & Code Style
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install clang-format
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang-format
+
+      - name: Check code formatting
+        run: ./scripts/check_lint.sh
+
+  test-and-coverage:
+    name: Test & 90% Coverage Gate
+    runs-on: macos-14
+    needs: [lint]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          brew update || true
+          brew install qt@5 libssh2 openssl@3 lcov
+
+      - name: Configure CMake with Coverage
+        run: |
+          export PATH="/opt/homebrew/opt/qt@5/bin:$PATH"
+          cmake -B build \
+            -DCMAKE_PREFIX_PATH="/opt/homebrew/opt/qt@5" \
+            -DBUILD_TESTING=ON \
+            -DENABLE_COVERAGE=ON
+
+      - name: Build Test Suite
+        run: |
+          cmake --build build -j$(sysctl -n hw.ncpu)
+
+      - name: Run Tests
+        run: |
+          ctest --test-dir build --output-on-failure
+
+      - name: Enforce 90% Coverage Gate
+        run: |
+          ./scripts/check_coverage.sh 90.0 build
+
+  build-matrix:
+    name: Build (${{ matrix.os }} - ${{ matrix.arch }})
+    needs: [lint]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-13
+            arch: x86_64
+            qt_arch: clang_64
+          - os: macos-14
+            arch: arm64
+            qt_arch: clang_64
+          - os: windows-latest
+            arch: x86_64
+            qt_arch: win64_msvc2019_64
+
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # macOS (Intel & Apple Silicon) setup
+      - name: Install macOS Dependencies
+        if: runner.os == 'macOS'
+        run: |
+          brew update || true
+          brew install qt@5 libssh2 openssl@3
+
+      - name: Configure & Build on macOS
+        if: runner.os == 'macOS'
+        run: |
+          if [ "${{ matrix.arch }}" = "arm64" ]; then
+            export QT_DIR="/opt/homebrew/opt/qt@5"
+          else
+            export QT_DIR="/usr/local/opt/qt@5"
+          fi
+          export PATH="$QT_DIR/bin:$PATH"
+
+          cmake -B build \
+            -DCMAKE_PREFIX_PATH="$QT_DIR" \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DBUILD_TESTING=OFF
+
+          cmake --build build --config Release -j$(sysctl -n hw.ncpu)
+
+      - name: Verify macOS Build Artifact
+        if: runner.os == 'macOS'
+        run: |
+          test -d build/RetroSSH.app
+          echo "macOS build verified: build/RetroSSH.app"
+
+      # Windows (x86_64 MSVC) setup
+      - name: Setup Qt on Windows
+        if: runner.os == 'Windows'
+        uses: jurplel/install-qt-action@v3
+        with:
+          version: '5.15.2'
+          arch: ${{ matrix.qt_arch }}
+          cached: true
+
+      - name: Cache vcpkg dependencies
+        if: runner.os == 'Windows'
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ env.VCPKG_INSTALLATION_ROOT }}/installed
+          key: ${{ runner.os }}-vcpkg-${{ hashFiles('CMakeLists.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-vcpkg-
+
+      - name: Install Windows Dependencies via vcpkg
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          vcpkg install libssh2:x64-windows openssl:x64-windows
+
+      - name: Configure & Build on Windows
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          cmake -B build \
+            -G "Visual Studio 17 2022" -A x64 \
+            -DCMAKE_TOOLCHAIN_FILE="$VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake" \
+            -DVCPKG_TARGET_TRIPLET="x64-windows" \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DBUILD_TESTING=OFF
+
+          cmake --build build --config Release --parallel
+
+      - name: Verify Windows Build Artifact
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          test -f build/Release/RetroSSH.exe
+          echo "Windows build verified: build/Release/RetroSSH.exe"

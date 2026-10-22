@@ -2,27 +2,26 @@
 #include <QDebug>
 #include <QDir>
 #include <QFile>
-#include <chrono>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
 #include <arpa/inet.h>
-#include <netdb.h>
-#include <unistd.h>
+#include <chrono>
 #include <fcntl.h>
-#include <poll.h>
+#include <netdb.h>
+#include <netinet/in.h>
 #include <netinet/tcp.h>
+#include <poll.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <unistd.h>
 
-static SshSessionWorker* s_activeWorker = nullptr;
+static SshSessionWorker *s_activeWorker = nullptr;
 
-static void kbd_callback(const char *name, int name_len,
-                         const char *instruction, int instruction_len,
-                         int num_prompts,
-                         const LIBSSH2_USERAUTH_KBDINT_PROMPT *prompts,
-                         LIBSSH2_USERAUTH_KBDINT_RESPONSE *responses,
+static void kbd_callback(const char *name, int name_len, const char *instruction, int instruction_len, int num_prompts,
+                         const LIBSSH2_USERAUTH_KBDINT_PROMPT *prompts, LIBSSH2_USERAUTH_KBDINT_RESPONSE *responses,
                          void **abstract) {
-    (void)name; (void)name_len;
-    (void)instruction; (void)instruction_len;
+    (void)name;
+    (void)name_len;
+    (void)instruction;
+    (void)instruction_len;
     (void)prompts;
     (void)abstract;
 
@@ -33,8 +32,7 @@ static void kbd_callback(const char *name, int name_len,
     }
 }
 
-SshSessionWorker::SshSessionWorker(QObject *parent)
-    : QThread(parent) {
+SshSessionWorker::SshSessionWorker(QObject *parent) : QThread(parent) {
     libssh2_init(0);
     if (::pipe(m_wakePipe) == 0) {
         fcntl(m_wakePipe[0], F_SETFL, O_NONBLOCK);
@@ -45,14 +43,19 @@ SshSessionWorker::SshSessionWorker(QObject *parent)
 SshSessionWorker::~SshSessionWorker() {
     disconnectFromServer();
     wait(1000);
-    if (m_wakePipe[0] >= 0) { ::close(m_wakePipe[0]); m_wakePipe[0] = -1; }
-    if (m_wakePipe[1] >= 0) { ::close(m_wakePipe[1]); m_wakePipe[1] = -1; }
+    if (m_wakePipe[0] >= 0) {
+        ::close(m_wakePipe[0]);
+        m_wakePipe[0] = -1;
+    }
+    if (m_wakePipe[1] >= 0) {
+        ::close(m_wakePipe[1]);
+        m_wakePipe[1] = -1;
+    }
     libssh2_exit();
 }
 
-void SshSessionWorker::startConnection(const QString &host, int port, const QString &username,
-                                       const QString &password, const QString &authMethod,
-                                       bool keepAlive) {
+void SshSessionWorker::startConnection(const QString &host, int port, const QString &username, const QString &password,
+                                       const QString &authMethod, bool keepAlive) {
     if (isRunning()) {
         disconnectFromServer();
         wait(500);
@@ -70,16 +73,13 @@ void SshSessionWorker::startConnection(const QString &host, int port, const QStr
 }
 
 bool SshSessionWorker::tryPublicKeyAuth(const QByteArray &userBytes, const QString &keyPath) {
-    if (!m_session) return false;
+    if (!m_session)
+        return false;
 
     QString privKey = keyPath;
     if (privKey.isEmpty()) {
         QString home = QDir::homePath();
-        QStringList candidates = {
-            home + "/.ssh/id_rsa",
-            home + "/.ssh/id_ed25519",
-            home + "/.ssh/id_ecdsa"
-        };
+        QStringList candidates = {home + "/.ssh/id_rsa", home + "/.ssh/id_ed25519", home + "/.ssh/id_ecdsa"};
         for (const QString &c : candidates) {
             if (QFile::exists(c)) {
                 privKey = c;
@@ -105,13 +105,8 @@ bool SshSessionWorker::tryPublicKeyAuth(const QByteArray &userBytes, const QStri
     int rc = 0;
     {
         QMutexLocker locker(&m_sshMutex);
-        rc = libssh2_userauth_publickey_fromfile(
-            m_session,
-            userBytes.constData(),
-            pubPtr,
-            privBytes.constData(),
-            passPtr
-        );
+        rc = libssh2_userauth_publickey_fromfile(m_session, userBytes.constData(), pubPtr, privBytes.constData(),
+                                                 passPtr);
     }
 
     return rc == 0;
@@ -142,18 +137,18 @@ void SshSessionWorker::run() {
 
     // Disable Nagle's algorithm (TCP_NODELAY) for ultra-low interactive latency
     int one = 1;
-    setsockopt(m_socket, IPPROTO_TCP, TCP_NODELAY, (const char*)&one, sizeof(one));
+    setsockopt(m_socket, IPPROTO_TCP, TCP_NODELAY, (const char *)&one, sizeof(one));
 
     // Enable TCP keepalive if requested
     if (m_params.keepAlive) {
         int keepAliveOpt = 1;
-        setsockopt(m_socket, SOL_SOCKET, SO_KEEPALIVE, (const char*)&keepAliveOpt, sizeof(keepAliveOpt));
+        setsockopt(m_socket, SOL_SOCKET, SO_KEEPALIVE, (const char *)&keepAliveOpt, sizeof(keepAliveOpt));
 #if defined(TCP_KEEPIDLE)
         int idle = 30; // seconds before sending probes
-        setsockopt(m_socket, IPPROTO_TCP, TCP_KEEPIDLE, (const char*)&idle, sizeof(idle));
+        setsockopt(m_socket, IPPROTO_TCP, TCP_KEEPIDLE, (const char *)&idle, sizeof(idle));
 #elif defined(TCP_KEEPALIVE) // macOS
         int idle = 30;
-        setsockopt(m_socket, IPPROTO_TCP, TCP_KEEPALIVE, (const char*)&idle, sizeof(idle));
+        setsockopt(m_socket, IPPROTO_TCP, TCP_KEEPALIVE, (const char *)&idle, sizeof(idle));
 #endif
     }
 
@@ -161,8 +156,8 @@ void SshSessionWorker::run() {
     struct timeval tv;
     tv.tv_sec = 5;
     tv.tv_usec = 0;
-    setsockopt(m_socket, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tv, sizeof tv);
-    setsockopt(m_socket, SOL_SOCKET, SO_SNDTIMEO, (const char*)&tv, sizeof tv);
+    setsockopt(m_socket, SOL_SOCKET, SO_RCVTIMEO, (const char *)&tv, sizeof tv);
+    setsockopt(m_socket, SOL_SOCKET, SO_SNDTIMEO, (const char *)&tv, sizeof tv);
 
     emit statusMessage(QString("Connecting TCP socket to %1...").arg(m_params.host));
 
@@ -312,7 +307,8 @@ void SshSessionWorker::run() {
 }
 
 void SshSessionWorker::sendData(const QByteArray &data) {
-    if (!m_connected) return;
+    if (!m_connected)
+        return;
 
     {
         QMutexLocker locker(&m_writeQueueMutex);
@@ -327,7 +323,8 @@ void SshSessionWorker::sendData(const QByteArray &data) {
 }
 
 void SshSessionWorker::resizePty(int cols, int rows) {
-    if (!m_connected || !m_channel) return;
+    if (!m_connected || !m_channel)
+        return;
     QMutexLocker locker(&m_sshMutex);
     libssh2_channel_request_pty_size(m_channel, cols, rows);
 }
@@ -373,8 +370,8 @@ void SshSessionWorker::disconnectFromServer() {
 void SshSessionWorker::runIoLoop() {
     // Clear SO_RCVTIMEO and SO_SNDTIMEO so non-blocking poll controls timing
     struct timeval tvZero{};
-    setsockopt(m_socket, SOL_SOCKET, SO_RCVTIMEO, (const char*)&tvZero, sizeof tvZero);
-    setsockopt(m_socket, SOL_SOCKET, SO_SNDTIMEO, (const char*)&tvZero, sizeof tvZero);
+    setsockopt(m_socket, SOL_SOCKET, SO_RCVTIMEO, (const char *)&tvZero, sizeof tvZero);
+    setsockopt(m_socket, SOL_SOCKET, SO_SNDTIMEO, (const char *)&tvZero, sizeof tvZero);
 
     {
         QMutexLocker locker(&m_sshMutex);
@@ -426,7 +423,8 @@ void SshSessionWorker::runIoLoop() {
                     break;
                 }
             }
-            if (!m_connected) break;
+            if (!m_connected)
+                break;
         }
 
         // 2. Poll socket for incoming packets AND wakePipe for instant input notifications
@@ -435,7 +433,8 @@ void SshSessionWorker::runIoLoop() {
             // Drain wake pipe if triggered
             if (pfds[1].revents & POLLIN) {
                 char dummy[64];
-                while (::read(m_wakePipe[0], dummy, sizeof(dummy)) > 0) {}
+                while (::read(m_wakePipe[0], dummy, sizeof(dummy)) > 0) {
+                }
             }
 
             // Socket error or peer disconnected
@@ -450,7 +449,8 @@ void SshSessionWorker::runIoLoop() {
                     ssize_t bytes = 0;
                     {
                         QMutexLocker locker(&m_sshMutex);
-                        if (!m_channel || !m_connected) break;
+                        if (!m_channel || !m_connected)
+                            break;
                         bytes = libssh2_channel_read(m_channel, buffer, sizeof(buffer));
                     }
 
@@ -464,10 +464,12 @@ void SshSessionWorker::runIoLoop() {
                         break;
                     }
                 }
-                if (!m_connected) break;
+                if (!m_connected)
+                    break;
             }
         } else if (pollRes < 0) {
-            if (errno == EINTR) continue;
+            if (errno == EINTR)
+                continue;
             m_connected = false;
             break;
         }
@@ -481,7 +483,8 @@ void SshSessionWorker::runIoLoop() {
                 int kaRc = 0;
                 {
                     QMutexLocker locker(&m_sshMutex);
-                    if (m_session) kaRc = libssh2_keepalive_send(m_session, &secondsToNext);
+                    if (m_session)
+                        kaRc = libssh2_keepalive_send(m_session, &secondsToNext);
                 }
                 if (kaRc < 0 && kaRc != LIBSSH2_ERROR_EAGAIN) {
                     m_connected = false;

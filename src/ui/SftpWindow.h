@@ -1,24 +1,25 @@
 #pragma once
 
-#include <QMainWindow>
-#include <QTreeWidget>
-#include <QTableWidget>
-#include <QTextEdit>
-#include <QTreeView>
-#include <QFileSystemModel>
-#include <QComboBox>
-#include <QTabWidget>
-#include <QLabel>
-#include <QThread>
-#include <QMutex>
 #include "backend/SftpWorker.h"
 #include "backend/SshSessionWorker.h"
+#include <QComboBox>
+#include <QFileSystemModel>
+#include <QLabel>
+#include <QMainWindow>
+#include <QMutex>
+#include <QTabWidget>
+#include <QTableWidget>
+#include <QTextEdit>
+#include <QThread>
+#include <QTreeView>
+#include <QTreeWidget>
 
 class SftpWindow : public QMainWindow {
     Q_OBJECT
 
 public:
-    explicit SftpWindow(const SshConnectionParams &params, const QString &initialRemotePath = "/root", QWidget *parent = nullptr);
+    explicit SftpWindow(const SshConnectionParams &params, const QString &initialRemotePath = "/root",
+                        QWidget *parent = nullptr);
     ~SftpWindow();
 
     void navigateRemote(const QString &path);
@@ -39,7 +40,7 @@ private:
     void setupMenus();
     void setupToolBars();
     void setupUi();
-    QWidget* createPaneHeader(bool isLocal);
+    QWidget *createPaneHeader(bool isLocal);
 
     int m_socket = -1;
     LIBSSH2_SESSION *m_session = nullptr;

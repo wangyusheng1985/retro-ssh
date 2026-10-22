@@ -1,16 +1,16 @@
 #pragma once
 
-#include <QMainWindow>
-#include <QLabel>
-#include <QToolButton>
-#include <QTabBar>
-#include <QStackedWidget>
-#include <QMap>
 #include "backend/SshSessionWorker.h"
-#include "ui/TerminalWidget.h"
-#include "ui/QuickConnectDialog.h"
 #include "ui/ProfileSettingsDialog.h"
+#include "ui/QuickConnectDialog.h"
 #include "ui/SftpWindow.h"
+#include "ui/TerminalWidget.h"
+#include <QLabel>
+#include <QMainWindow>
+#include <QMap>
+#include <QStackedWidget>
+#include <QTabBar>
+#include <QToolButton>
 
 struct SessionTabInfo {
     QString title;
@@ -50,7 +50,7 @@ private:
     void connectSession(int tabIndex);
     void showDefaultStartingPage();
     void uploadClipboardImage(SessionTabInfo *s);
-    SessionTabInfo* currentSession();
+    SessionTabInfo *currentSession();
 
     QToolBar *m_tier1 = nullptr;
     QToolBar *m_tier2 = nullptr;

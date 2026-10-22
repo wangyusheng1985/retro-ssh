@@ -1,7 +1,7 @@
 # RetroSSH
 
 <p align="center">
-  <img src="src/resources/icons/app_icon.svg" width="128" height="128" alt="RetroSSH Logo" />
+  <img src="src/resources/icons/app_icon.png" width="128" height="128" alt="RetroSSH Logo" />
 </p>
 
 <p align="center">

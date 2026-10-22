@@ -1,27 +1,26 @@
 #pragma once
 
-#include <QDialog>
-#include <QTreeWidget>
-#include <QTabWidget>
-#include <QLineEdit>
-#include <QComboBox>
+#include "backend/ProfileManager.h"
+#include <QApplication>
 #include <QCheckBox>
-#include <QPushButton>
-#include <QHBoxLayout>
-#include <QVBoxLayout>
+#include <QClipboard>
+#include <QComboBox>
+#include <QDialog>
 #include <QGridLayout>
+#include <QHBoxLayout>
+#include <QInputDialog>
 #include <QLabel>
+#include <QLineEdit>
 #include <QMenu>
 #include <QMessageBox>
-#include <QInputDialog>
-#include <QApplication>
-#include <QClipboard>
-#include "backend/ProfileManager.h"
+#include <QPushButton>
+#include <QTabWidget>
+#include <QTreeWidget>
+#include <QVBoxLayout>
 
 class EditProfilesDialog : public QDialog {
 public:
-    explicit EditProfilesDialog(const QString &selectedProfile = "", QWidget *parent = nullptr)
-        : QDialog(parent) {
+    explicit EditProfilesDialog(const QString &selectedProfile = "", QWidget *parent = nullptr) : QDialog(parent) {
         setWindowTitle("Profiles");
         resize(640, 500);
         setWindowFlags(windowFlags() & ~Qt::WindowContextHelpButtonHint);
@@ -43,7 +42,8 @@ public:
         setupTree(selectedProfile);
         centerLayout->addWidget(m_tree);
 
-        // Right Tabs (Connection, Cipher List, Authentication, Keyboard, Colors, Tunneling, File Transfer, Favorite Folders)
+        // Right Tabs (Connection, Cipher List, Authentication, Keyboard, Colors, Tunneling, File Transfer, Favorite
+        // Folders)
         m_tabWidget = new QTabWidget(this);
         m_tabWidget->addTab(createConnectionTab(), "Connection");
         m_tabWidget->addTab(createCipherListTab(), "Cipher List");
@@ -118,10 +118,12 @@ private:
 
     void showTreeContextMenu(const QPoint &pos) {
         QTreeWidgetItem *item = m_tree->itemAt(pos);
-        if (!item) return;
+        if (!item)
+            return;
 
         QString key = item->data(0, Qt::UserRole).toString();
-        if (key.startsWith("__")) return; // Only show for child profiles
+        if (key.startsWith("__"))
+            return; // Only show for child profiles
 
         QMenu menu(this);
         // Exact 1:1 items per screenshot:
@@ -146,7 +148,8 @@ private:
         QAction *shortcutAct = menu.addAction("Create &Shortcut");
 
         QAction *chosen = menu.exec(m_tree->viewport()->mapToGlobal(pos));
-        if (!chosen) return;
+        if (!chosen)
+            return;
 
         if (chosen == connectAct) {
             saveCurrentProfileData();
@@ -170,12 +173,13 @@ private:
             }
         } else if (chosen == renameAct) {
             bool ok = false;
-            QString newName = QInputDialog::getText(this, "Rename Profile", "New profile name:",
-                                                    QLineEdit::Normal, key, &ok);
+            QString newName =
+                QInputDialog::getText(this, "Rename Profile", "New profile name:", QLineEdit::Normal, key, &ok);
             if (ok && !newName.trimmed().isEmpty() && newName.trimmed() != key) {
                 newName = newName.trimmed();
                 if (ProfileManager::instance().hasProfile(newName)) {
-                    QMessageBox::warning(this, "Rename Profile", QString("A profile named '%1' already exists.").arg(newName));
+                    QMessageBox::warning(this, "Rename Profile",
+                                         QString("A profile named '%1' already exists.").arg(newName));
                 } else {
                     ProfileData p = ProfileManager::instance().getProfile(key);
                     p.name = newName;
@@ -191,17 +195,20 @@ private:
         }
     }
 
-    QWidget* createConnectionTab() {
+    QWidget *createConnectionTab() {
         QWidget *w = new QWidget();
         QVBoxLayout *vl = new QVBoxLayout(w);
         vl->setContentsMargins(12, 12, 12, 12);
         vl->setSpacing(6);
 
-        QLabel *desc1 = new QLabel("Configure protocol settings for the connection. New settings will take effect upon next login.", w);
+        QLabel *desc1 = new QLabel(
+            "Configure protocol settings for the connection. New settings will take effect upon next login.", w);
         desc1->setWordWrap(true);
         vl->addWidget(desc1);
 
-        QLabel *desc2 = new QLabel("Specify * as the host name or the user name to be prompted for the information when the profile is chosen for connecting.", w);
+        QLabel *desc2 = new QLabel("Specify * as the host name or the user name to be prompted for the information "
+                                   "when the profile is chosen for connecting.",
+                                   w);
         desc2->setWordWrap(true);
         desc2->setStyleSheet("color: #333333; margin-bottom: 6px;");
         vl->addWidget(desc2);
@@ -267,19 +274,21 @@ private:
         return w;
     }
 
-    QWidget* createCipherListTab() {
+    QWidget *createCipherListTab() {
         QWidget *w = new QWidget();
         QVBoxLayout *vl = new QVBoxLayout(w);
         vl->setContentsMargins(12, 12, 12, 12);
         vl->addWidget(new QLabel("Cryptographic ciphers enabled for this profile:", w));
         QListWidget *lw = new QListWidget(w);
-        lw->addItems({"aes256-gcm@openssh.com", "chacha20-poly1305@openssh.com", "aes128-gcm@openssh.com", "aes256-ctr", "aes128-ctr"});
-        for (int i = 0; i < lw->count(); ++i) lw->item(i)->setCheckState(Qt::Checked);
+        lw->addItems({"aes256-gcm@openssh.com", "chacha20-poly1305@openssh.com", "aes128-gcm@openssh.com", "aes256-ctr",
+                      "aes128-ctr"});
+        for (int i = 0; i < lw->count(); ++i)
+            lw->item(i)->setCheckState(Qt::Checked);
         vl->addWidget(lw);
         return w;
     }
 
-    QWidget* createAuthTab() {
+    QWidget *createAuthTab() {
         QWidget *w = new QWidget();
         QVBoxLayout *vl = new QVBoxLayout(w);
         vl->setContentsMargins(12, 12, 12, 12);
@@ -290,7 +299,7 @@ private:
         return w;
     }
 
-    QWidget* createKeyboardTab() {
+    QWidget *createKeyboardTab() {
         QWidget *w = new QWidget();
         QVBoxLayout *vl = new QVBoxLayout(w);
         vl->setContentsMargins(12, 12, 12, 12);
@@ -299,7 +308,7 @@ private:
         return w;
     }
 
-    QWidget* createColorsTab() {
+    QWidget *createColorsTab() {
         QWidget *w = new QWidget();
         QVBoxLayout *vl = new QVBoxLayout(w);
         vl->setContentsMargins(12, 12, 12, 12);
@@ -308,7 +317,7 @@ private:
         return w;
     }
 
-    QWidget* createTunnelingTab() {
+    QWidget *createTunnelingTab() {
         QWidget *w = new QWidget();
         QVBoxLayout *vl = new QVBoxLayout(w);
         vl->setContentsMargins(12, 12, 12, 12);
@@ -317,7 +326,7 @@ private:
         return w;
     }
 
-    QWidget* createFileTransferTab() {
+    QWidget *createFileTransferTab() {
         QWidget *w = new QWidget();
         QVBoxLayout *vl = new QVBoxLayout(w);
         vl->setContentsMargins(12, 12, 12, 12);
@@ -326,7 +335,7 @@ private:
         return w;
     }
 
-    QWidget* createFavoritesTab() {
+    QWidget *createFavoritesTab() {
         QWidget *w = new QWidget();
         QVBoxLayout *vl = new QVBoxLayout(w);
         vl->setContentsMargins(12, 12, 12, 12);
@@ -336,7 +345,8 @@ private:
     }
 
     void loadProfileData(const QString &name) {
-        if (!ProfileManager::instance().hasProfile(name)) return;
+        if (!ProfileManager::instance().hasProfile(name))
+            return;
         auto p = ProfileManager::instance().getProfile(name);
         m_hostEdit->setText(p.params.host);
         m_userEdit->setText(p.params.username);
@@ -351,7 +361,8 @@ private:
     }
 
     void saveCurrentProfileData() {
-        if (m_currentProfileKey.isEmpty() || m_currentProfileKey.startsWith("__")) return;
+        if (m_currentProfileKey.isEmpty() || m_currentProfileKey.startsWith("__"))
+            return;
         ProfileData p = ProfileManager::instance().getProfile(m_currentProfileKey);
         p.name = m_currentProfileKey;
         p.params.host = m_hostEdit->text().trimmed();
@@ -372,7 +383,8 @@ private:
         if (previous) {
             saveCurrentProfileData();
         }
-        if (!current) return;
+        if (!current)
+            return;
         m_currentProfileKey = current->data(0, Qt::UserRole).toString();
         if (m_currentProfileKey.startsWith("__")) {
             m_hostEdit->clear();
@@ -391,7 +403,7 @@ private:
     QTreeWidget *m_tree = nullptr;
     QTreeWidgetItem *m_profRoot = nullptr;
     QTabWidget *m_tabWidget = nullptr;
-    QMap<QString, QTreeWidgetItem*> m_profileItems;
+    QMap<QString, QTreeWidgetItem *> m_profileItems;
     QString m_currentProfileKey;
 
     ProfileData m_clipboardProfile;

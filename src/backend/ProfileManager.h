@@ -1,9 +1,9 @@
 #pragma once
 
-#include <QString>
+#include "backend/SshSessionWorker.h"
 #include <QMap>
 #include <QSettings>
-#include "backend/SshSessionWorker.h"
+#include <QString>
 
 struct ProfileData {
     QString name;
@@ -47,14 +47,12 @@ struct GlobalAppearanceSettings {
 
 class ProfileManager {
 public:
-    static ProfileManager& instance() {
+    static ProfileManager &instance() {
         static ProfileManager s_inst;
         return s_inst;
     }
 
-    GlobalAppearanceSettings getGlobalAppearance() const {
-        return m_globalAppearance;
-    }
+    GlobalAppearanceSettings getGlobalAppearance() const { return m_globalAppearance; }
 
     void saveGlobalAppearance(const GlobalAppearanceSettings &g) {
         m_globalAppearance = g;
@@ -203,18 +201,12 @@ public:
         saveProfiles();
     }
 
-    bool hasProfile(const QString &name) const {
-        return m_profiles.contains(name);
-    }
+    bool hasProfile(const QString &name) const { return m_profiles.contains(name); }
 
-    ProfileData getProfile(const QString &name) const {
-        return m_profiles.value(name);
-    }
+    ProfileData getProfile(const QString &name) const { return m_profiles.value(name); }
 
 private:
-    ProfileManager() {
-        loadProfiles();
-    }
+    ProfileManager() { loadProfiles(); }
     GlobalAppearanceSettings m_globalAppearance;
     QMap<QString, ProfileData> m_profiles;
 };

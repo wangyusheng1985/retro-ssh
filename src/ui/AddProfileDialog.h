@@ -1,14 +1,13 @@
 #pragma once
 
 #include <QDialog>
+#include <QHBoxLayout>
 #include <QLineEdit>
 #include <QPushButton>
-#include <QHBoxLayout>
 
 class AddProfileDialog : public QDialog {
 public:
-    explicit AddProfileDialog(const QString &defaultName = "", QWidget *parent = nullptr)
-        : QDialog(parent) {
+    explicit AddProfileDialog(const QString &defaultName = "", QWidget *parent = nullptr) : QDialog(parent) {
         setWindowTitle("Add Profile");
         resize(360, 65);
         setWindowFlags(windowFlags() & ~Qt::WindowContextHelpButtonHint);
@@ -28,9 +27,7 @@ public:
         layout->addWidget(m_addBtn);
     }
 
-    QString profileName() const {
-        return m_nameEdit->text().trimmed();
-    }
+    QString profileName() const { return m_nameEdit->text().trimmed(); }
 
 private:
     QLineEdit *m_nameEdit = nullptr;

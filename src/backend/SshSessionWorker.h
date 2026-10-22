@@ -1,9 +1,9 @@
 #pragma once
 
-#include <QThread>
-#include <QString>
 #include <QByteArray>
 #include <QMutex>
+#include <QString>
+#include <QThread>
 #include <libssh2.h>
 #include <libssh2_sftp.h>
 
@@ -27,13 +27,12 @@ public:
     ~SshSessionWorker() override;
 
     bool isConnected() const { return m_connected; }
-    LIBSSH2_SESSION* rawSession() const { return m_session; }
+    LIBSSH2_SESSION *rawSession() const { return m_session; }
     QString currentPassword() const { return m_params.password; }
 
     // Start connection in background thread
-    void startConnection(const QString &host, int port, const QString &username,
-                         const QString &password, const QString &authMethod,
-                         bool keepAlive = true);
+    void startConnection(const QString &host, int port, const QString &username, const QString &password,
+                         const QString &authMethod, bool keepAlive = true);
 
     // Thread-safe methods callable from GUI thread directly
     void sendData(const QByteArray &data);

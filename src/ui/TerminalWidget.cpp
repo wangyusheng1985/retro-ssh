@@ -1,53 +1,46 @@
 #include "TerminalWidget.h"
 #include "ui/FindDialog.h"
-#include <QPainter>
-#include <QKeyEvent>
-#include <QWheelEvent>
-#include <QClipboard>
-#include <QMimeData>
 #include <QApplication>
+#include <QClipboard>
+#include <QDebug>
+#include <QFontDatabase>
+#include <QFontMetrics>
+#include <QKeyEvent>
 #include <QMenu>
 #include <QMessageBox>
-#include <QFontMetrics>
+#include <QMimeData>
+#include <QPainter>
 #include <QRegularExpression>
 #include <QTextCodec>
 #include <QTextDecoder>
-#include <QFontDatabase>
-#include <QDebug>
+#include <QWheelEvent>
 
 static const QColor ANSI_COLORS[16] = {
     // Normal 0-7: WCAG-calibrated for comfortable contrast against porcelain white (#FAFBFC)
-    QColor(31, 35, 40),      // 0: Deep Charcoal Black (#1F2328)
-    QColor(207, 34, 46),     // 1: Subdued Brick Red (#CF222E)
-    QColor(26, 127, 55),     // 2: Forest Green (#1A7F37)
-    QColor(154, 103, 0),     // 3: Warm Amber Yellow (#9A6700, 5.2:1 contrast)
-    QColor(9, 105, 218),     // 4: Tech Blue (#0969DA)
-    QColor(130, 80, 223),    // 5: Modern Purple (#8250DF)
-    QColor(27, 123, 148),    // 6: Deep Teal Cyan (#1B7B94)
-    QColor(110, 119, 129),   // 7: Medium Neutral Gray (#6E7781)
+    QColor(31, 35, 40),    // 0: Deep Charcoal Black (#1F2328)
+    QColor(207, 34, 46),   // 1: Subdued Brick Red (#CF222E)
+    QColor(26, 127, 55),   // 2: Forest Green (#1A7F37)
+    QColor(154, 103, 0),   // 3: Warm Amber Yellow (#9A6700, 5.2:1 contrast)
+    QColor(9, 105, 218),   // 4: Tech Blue (#0969DA)
+    QColor(130, 80, 223),  // 5: Modern Purple (#8250DF)
+    QColor(27, 123, 148),  // 6: Deep Teal Cyan (#1B7B94)
+    QColor(110, 119, 129), // 7: Medium Neutral Gray (#6E7781)
     // Bright 8-15
-    QColor(87, 96, 106),     // 8: Slate Gray (#57606A)
-    QColor(164, 14, 38),     // 9: Deep Ruby Red (#A40E26)
-    QColor(17, 99, 41),      // 10: Dark Emerald Green (#116329)
-    QColor(125, 78, 0),      // 11: Dark Amber (#7D4E00)
-    QColor(5, 77, 167),      // 12: Classic Deep Blue (#054DA7)
-    QColor(102, 57, 186),    // 13: Royal Violet (#6639BA)
-    QColor(18, 93, 114),     // 14: Dark Cyan (#125D72)
-    QColor(36, 41, 47)       // 15: Contrast High-Density Black (#24292F)
+    QColor(87, 96, 106),  // 8: Slate Gray (#57606A)
+    QColor(164, 14, 38),  // 9: Deep Ruby Red (#A40E26)
+    QColor(17, 99, 41),   // 10: Dark Emerald Green (#116329)
+    QColor(125, 78, 0),   // 11: Dark Amber (#7D4E00)
+    QColor(5, 77, 167),   // 12: Classic Deep Blue (#054DA7)
+    QColor(102, 57, 186), // 13: Royal Violet (#6639BA)
+    QColor(18, 93, 114),  // 14: Dark Cyan (#125D72)
+    QColor(36, 41, 47)    // 15: Contrast High-Density Black (#24292F)
 };
 
 static QString detectBestMonospaceFont() {
     QFontDatabase db;
     QStringList families = db.families();
-    static const QStringList preferred = {
-        "SF Mono",
-        "JetBrains Mono",
-        "Menlo",
-        "Cascadia Code",
-        "Consolas",
-        "Monaco",
-        "Courier New"
-    };
+    static const QStringList preferred = {"SF Mono",  "JetBrains Mono", "Menlo",      "Cascadia Code",
+                                          "Consolas", "Monaco",         "Courier New"};
     for (const QString &cand : preferred) {
         if (families.contains(cand, Qt::CaseInsensitive)) {
             return cand;
@@ -69,9 +62,7 @@ QColor TerminalWidget::colorFrom256Index(int idx) {
         int r = (cubeIdx / 36) % 6;
         int g = (cubeIdx / 6) % 6;
         int b = cubeIdx % 6;
-        auto step = [](int val) -> int {
-            return val ? (55 + val * 40) : 0;
-        };
+        auto step = [](int val) -> int { return val ? (55 + val * 40) : 0; };
         return QColor(step(r), step(g), step(b));
     }
     // 24-step grayscale (232-255)
@@ -79,8 +70,7 @@ QColor TerminalWidget::colorFrom256Index(int idx) {
     return QColor(gray, gray, gray);
 }
 
-TerminalWidget::TerminalWidget(QWidget *parent)
-    : QWidget(parent) {
+TerminalWidget::TerminalWidget(QWidget *parent) : QWidget(parent) {
     setFocusPolicy(Qt::StrongFocus);
     setAttribute(Qt::WA_OpaquePaintEvent);
     setAttribute(Qt::WA_InputMethodEnabled, true);
@@ -121,14 +111,9 @@ void TerminalWidget::bindScrollBar(QScrollBar *scrollBar) {
 
 bool TerminalWidget::isWideChar(QChar ch) {
     ushort u = ch.unicode();
-    return ((u >= 0x1100 && u <= 0x115F) ||
-            (u >= 0x2E80 && u <= 0xA4CF && u != 0x303F) ||
-            (u >= 0xAC00 && u <= 0xD7A3) ||
-            (u >= 0xF900 && u <= 0xFAFF) ||
-            (u >= 0xFE10 && u <= 0xFE19) ||
-            (u >= 0xFE30 && u <= 0xFE6F) ||
-            (u >= 0xFF00 && u <= 0xFF60) ||
-            (u >= 0xFFE0 && u <= 0xFFE6));
+    return ((u >= 0x1100 && u <= 0x115F) || (u >= 0x2E80 && u <= 0xA4CF && u != 0x303F) ||
+            (u >= 0xAC00 && u <= 0xD7A3) || (u >= 0xF900 && u <= 0xFAFF) || (u >= 0xFE10 && u <= 0xFE19) ||
+            (u >= 0xFE30 && u <= 0xFE6F) || (u >= 0xFF00 && u <= 0xFF60) || (u >= 0xFFE0 && u <= 0xFFE6));
 }
 
 void TerminalWidget::setTerminalFont(const QString &family, int pointSize) {
@@ -168,12 +153,11 @@ void TerminalWidget::setMaxScrollback(int lines) {
 void TerminalWidget::resetToDefaultBanner() {
     clearScreen();
     m_showingBanner = true;
-    QString banner =
-        "RetroSSH Client 1.0 (Build 2026)\n"
-        "Native High-Performance SSH2 / SFTP Client for macOS\n\n"
-        "Powered by modern OpenSSL 3.x & libssh2 Cryptography Engine.\n"
-        "Vintage SSH Workflow with Modern Security.\n\n"
-        "Press Enter or Space to Quick Connect, or choose a Profile from the toolbar.\n\n";
+    QString banner = "RetroSSH Client 1.0 (Build 2026)\n"
+                     "Native High-Performance SSH2 / SFTP Client for macOS\n\n"
+                     "Powered by modern OpenSSL 3.x & libssh2 Cryptography Engine.\n"
+                     "Vintage SSH Workflow with Modern Security.\n\n"
+                     "Press Enter or Space to Quick Connect, or choose a Profile from the toolbar.\n\n";
 
     QColor baseBg = m_reverseVideo ? m_defaultFg : m_defaultBg;
     QColor baseFg = m_reverseVideo ? m_defaultBg : m_defaultFg;
@@ -185,8 +169,8 @@ void TerminalWidget::resetToDefaultBanner() {
     m_currentBg = baseBg;
 }
 
-void TerminalWidget::setTerminalColors(const QColor &fg, const QColor &bg, const QColor &sel,
-                                       const QColor &cursor, bool enableAnsi, bool reverseVideo) {
+void TerminalWidget::setTerminalColors(const QColor &fg, const QColor &bg, const QColor &sel, const QColor &cursor,
+                                       bool enableAnsi, bool reverseVideo) {
     m_defaultFg = fg;
     m_defaultBg = bg;
     m_selectionColor = sel;
@@ -241,6 +225,9 @@ void TerminalWidget::clearScreen(bool keepBanner) {
     m_cursorCol = 0;
     m_cursorRow = 0;
     m_scrollOffset = 0;
+    m_lastFoundRow = -1;
+    m_lastFoundCol = -1;
+    m_lastSearchText.clear();
     if (keepBanner) {
         resetToDefaultBanner();
     }
@@ -361,7 +348,8 @@ void TerminalWidget::parseAnsi(const QString &text) {
             }
         } else if (ch == '\t') {
             m_cursorCol = (m_cursorCol + 8) & ~7;
-            if (m_cursorCol >= m_cols) newLine();
+            if (m_cursorCol >= m_cols)
+                newLine();
         } else if (ch == 0x07) {
             QApplication::beep();
         } else {
@@ -482,7 +470,8 @@ void TerminalWidget::handleEscapeSequence(const QString &seq) {
                 m_currentUnderline = false;
             } else {
                 for (int i = 0; i < parts.size(); ++i) {
-                    if (parts[i].isEmpty()) continue;
+                    if (parts[i].isEmpty())
+                        continue;
                     int val = parts[i].toInt();
                     if (val == 0) {
                         m_currentFg = m_reverseVideo ? m_defaultBg : m_defaultFg;
@@ -711,7 +700,8 @@ void TerminalWidget::wheelEvent(QWheelEvent *event) {
 }
 
 void TerminalWidget::updateScrollRange() {
-    if (!m_scrollBar) return;
+    if (!m_scrollBar)
+        return;
 
     int totalLines = qMax(m_buffer.size(), m_cursorRow + 1);
     int maxScroll = qMax(0, totalLines - m_rows);
@@ -724,7 +714,8 @@ void TerminalWidget::updateScrollRange() {
 }
 
 void TerminalWidget::onScrollBarMoved(int value) {
-    if (!m_scrollBar) return;
+    if (!m_scrollBar)
+        return;
     int maxScroll = m_scrollBar->maximum();
     m_scrollOffset = qMax(0, maxScroll - value);
     update();
@@ -841,12 +832,11 @@ void TerminalWidget::paintEvent(QPaintEvent *) {
 }
 
 void TerminalWidget::keyPressEvent(QKeyEvent *event) {
-    // Ignore pure modifier keys (Fn / CapsLock / Shift / Control / Meta / Alt) to allow macOS system shortcuts (like Fn input source switch)
-    if (event->key() == Qt::Key_Shift || event->key() == Qt::Key_Control ||
-        event->key() == Qt::Key_Meta || event->key() == Qt::Key_Alt ||
-        event->key() == Qt::Key_AltGr || event->key() == Qt::Key_CapsLock ||
-        event->key() == Qt::Key_Mode_switch || event->key() == Qt::Key_NumLock ||
-        event->key() == 0) {
+    // Ignore pure modifier keys (Fn / CapsLock / Shift / Control / Meta / Alt) to allow macOS system shortcuts (like Fn
+    // input source switch)
+    if (event->key() == Qt::Key_Shift || event->key() == Qt::Key_Control || event->key() == Qt::Key_Meta ||
+        event->key() == Qt::Key_Alt || event->key() == Qt::Key_AltGr || event->key() == Qt::Key_CapsLock ||
+        event->key() == Qt::Key_Mode_switch || event->key() == Qt::Key_NumLock || event->key() == 0) {
         event->ignore();
         return;
     }
@@ -919,7 +909,8 @@ void TerminalWidget::keyPressEvent(QKeyEvent *event) {
     }
 
     // If on default banner page and not in an active session, Space or Enter triggers Quick Connect
-    if (m_showingBanner && (event->key() == Qt::Key_Return || event->key() == Qt::Key_Enter || event->key() == Qt::Key_Space)) {
+    if (m_showingBanner &&
+        (event->key() == Qt::Key_Return || event->key() == Qt::Key_Enter || event->key() == Qt::Key_Space)) {
         emit quickConnectRequested();
         return;
     }
@@ -1073,11 +1064,13 @@ void TerminalWidget::copySelection() {
 
             QString lineText;
             for (int c = minC; c < maxC; ++c) {
-                if (row[c].isWideContinuation) continue; // Skip continuation cell when copying
+                if (row[c].isWideContinuation)
+                    continue; // Skip continuation cell when copying
                 lineText.append(row[c].ch.isNull() ? ' ' : row[c].ch);
             }
             selected.append(lineText.trimmed());
-            if (r < maxR) selected.append('\n');
+            if (r < maxR)
+                selected.append('\n');
         }
     }
     if (!selected.isEmpty()) {
@@ -1105,7 +1098,14 @@ void TerminalWidget::pasteSelection() {
 }
 
 bool TerminalWidget::findText(const QString &text, bool matchCase, bool matchWord, bool isRegex, bool searchUp) {
-    if (text.isEmpty() || m_buffer.isEmpty()) return false;
+    if (text.isEmpty() || m_buffer.isEmpty())
+        return false;
+
+    if (text != m_lastSearchText) {
+        m_lastFoundRow = -1;
+        m_lastFoundCol = -1;
+        m_lastSearchText = text;
+    }
 
     int totalRows = m_buffer.size();
     int startR = searchUp ? m_cursorRow : 0;
@@ -1120,7 +1120,8 @@ bool TerminalWidget::findText(const QString &text, bool matchCase, bool matchWor
 
     QRegularExpression re;
     if (isRegex) {
-        auto patternOptions = matchCase ? QRegularExpression::NoPatternOption : QRegularExpression::CaseInsensitiveOption;
+        auto patternOptions =
+            matchCase ? QRegularExpression::NoPatternOption : QRegularExpression::CaseInsensitiveOption;
         re.setPattern(text);
         re.setPatternOptions(patternOptions);
         if (!re.isValid()) {
@@ -1130,7 +1131,8 @@ bool TerminalWidget::findText(const QString &text, bool matchCase, bool matchWor
     }
 
     for (int r = startR; r != endR; r += step) {
-        if (r < 0 || r >= m_buffer.size()) continue;
+        if (r < 0 || r >= m_buffer.size())
+            continue;
 
         QString lineStr;
         for (const auto &ac : m_buffer[r]) {
@@ -1151,7 +1153,8 @@ bool TerminalWidget::findText(const QString &text, bool matchCase, bool matchWor
             int searchIdx = 0;
             while (searchIdx < lineStr.length()) {
                 int found = lineStr.indexOf(text, searchIdx, cs);
-                if (found < 0) break;
+                if (found < 0)
+                    break;
 
                 if (matchWord) {
                     bool leftOk = (found == 0) || !lineStr.at(found - 1).isLetterOrNumber();
@@ -1194,12 +1197,11 @@ void TerminalWidget::showFindDialog() {
         m_findDialog = new FindDialog(this);
         m_findDialog->setOnFindNext([this]() {
             QString target = m_findDialog->findWhat();
-            if (target.isEmpty()) return;
+            if (target.isEmpty())
+                return;
 
-            bool found = findText(target, m_findDialog->matchCase(),
-                                  m_findDialog->matchWholeWord(),
-                                  m_findDialog->isRegex(),
-                                  m_findDialog->isDirectionUp());
+            bool found = findText(target, m_findDialog->matchCase(), m_findDialog->matchWholeWord(),
+                                  m_findDialog->isRegex(), m_findDialog->isDirectionUp());
             if (!found) {
                 QMessageBox::information(m_findDialog, "Find", QString("Cannot find \"%1\"").arg(target));
             }
@@ -1232,12 +1234,14 @@ void TerminalWidget::selectNone() {
 }
 
 void TerminalWidget::contextMenuEvent(QContextMenuEvent *event) {
-    if (m_pasteOnRightClick) return;
+    if (m_pasteOnRightClick)
+        return;
 
     QMenu menu(this);
 
     // 1. Copy (Ctrl+Insert)
-    QAction *copyAct = menu.addAction(QIcon(":/icons/quick_connect.svg"), "&Copy\tCtrl+Insert", this, &TerminalWidget::copySelection);
+    QAction *copyAct =
+        menu.addAction(QIcon(":/icons/quick_connect.svg"), "&Copy\tCtrl+Insert", this, &TerminalWidget::copySelection);
     copyAct->setEnabled(m_selectStart != m_selectEnd);
 
     // 2. Paste (Shift+Insert)
